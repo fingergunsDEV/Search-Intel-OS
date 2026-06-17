@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search Intel OS — HGM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+/* ── RESET ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+/* ── TOKENS ─────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg:       #0b0e17;
+  --surface:  #111827;
+  --surface2: #161d2e;
+  --surface3: #1e2740;
+  --glass:    rgba(255,255,255,0.04);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-hover:  rgba(255,255,255,0.07);
+
+  /* Accent — indigo */
+  --indigo:      #6366f1;
+  --indigo-light:#818cf8;
+  --indigo-dim:  rgba(99,102,241,0.15);
+  --indigo-glow: rgba(99,102,241,0.25);
+
+  /* Semantic */
+  --success:  #10b981;
+  --success-dim: rgba(16,185,129,0.12);
+  --warning:  #f59e0b;
+  --warning-dim: rgba(245,158,11,0.12);
+  --danger:   #ef4444;
+  --danger-dim:  rgba(239,68,68,0.12);
+  --info:     #38bdf8;
+  --info-dim: rgba(56,189,248,0.12);
+  --purple:   #a78bfa;
+  --purple-dim: rgba(167,139,250,0.12);
+
+  /* Text */
+  --text:    #f1f5f9;
+  --text-2:  #94a3b8;
+  --text-3:  #475569;
+  --text-4:  #334155;
+
+  /* Typography */
+  --font-ui:   'Plus Jakarta Sans', sans-serif;
+  --font-data: 'Inter', sans-serif;
+
+  /* Spacing */
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+}
+
+/* ── BASE ────────────────────────────────────────────── */
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* ── SHELL ───────────────────────────────────────────── */
+.shell { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
+  overflow: hidden;
+  z-index: 20;
+}
+.sidebar.collapsed { width: 60px; }
+.sidebar.collapsed .brand-wordmark,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-section,
+.sidebar.collapsed .sb-conn-text,
+.sidebar.collapsed .sb-conn-label { display: none; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+.brand-mark {
+  width: 32px; height: 32px;
+  background: var(--indigo-dim);
+  border: 1px solid rgba(99,102,241,0.35);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.brand-mark svg { width: 16px; height: 16px; fill: var(--indigo-light); }
+.brand-wordmark {}
+.brand-name {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.01em; line-height: 1.2;
+}
+.brand-sub { font-size: 10px; color: var(--text-3); font-weight: 400; margin-top: 1px; }
+
+.nav-section {
+  font-size: 10px; font-weight: 600; color: var(--text-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 20px 16px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  margin: 1px 8px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text-2);
+  font-size: 13px; font-weight: 500;
+  background: none; border: none; width: calc(100% - 16px);
+  text-align: left;
+  white-space: nowrap;
+  position: relative;
+}
+.nav-item:hover { background: var(--glass); color: var(--text); }
+.nav-item.active {
+  background: var(--indigo-dim);
+  color: var(--indigo-light);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -8px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 20px;
+  background: var(--indigo);
+  border-radius: 0 2px 2px 0;
+}
+.nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+.nav-item.active .nav-icon { opacity: 1; }
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 20px;
+  background: var(--danger-dim); color: var(--danger);
+}
+
+.sb-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--glass-border);
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
+.sb-conn-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-4); flex-shrink: 0;
+  transition: background 0.3s;
+}
+.sb-conn-dot.live { background: var(--success); box-shadow: 0 0 6px rgba(16,185,129,0.5); animation: pulse-dot 2.5s ease-in-out infinite; }
+.sb-conn-dot.connecting { background: var(--warning); animation: pulse-dot 1s ease-in-out infinite; }
+.sb-conn-text { font-size: 12px; font-weight: 500; }
+.sb-conn-label { font-size: 10px; color: var(--text-3); }
+
+/* ── MAIN COLUMN ─────────────────────────────────────── */
+.main-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* ── TOPBAR ──────────────────────────────────────────── */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+.btn-collapse {
+  width: 32px; height: 32px;
+  background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xs);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-2); transition: all 0.15s;
+  flex-shrink: 0;
+}
+.btn-collapse:hover { background: var(--glass-hover); color: var(--text); }
+
+.topbar-title {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.02em;
+}
+.topbar-title span { color: var(--indigo-light); }
+
+.topbar-sep { width: 1px; height: 20px; background: var(--glass-border); flex-shrink: 0; }
+.tb-spacer { flex: 1; }
+
+/* Status pills */
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500;
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid;
+}
+.pill-live { border-color: rgba(16,185,129,0.3); color: var(--success); background: var(--success-dim); }
+.pill-idle { border-color: rgba(71,85,105,0.4); color: var(--text-3); background: rgba(71,85,105,0.1); }
+.pill-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.pill-live .pill-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+
+/* Date selector */
+.date-sel {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xs);
+  color: var(--text-2);
+  font-family: var(--font-ui);
+  font-size: 12px; font-weight: 500;
+  padding: 6px 10px;
+  cursor: pointer; outline: none;
+  transition: all 0.15s;
+}
+.date-sel:hover { background: var(--glass-hover); color: var(--text); }
+.date-sel option { background: var(--surface2); }
+
+/* Topbar buttons */
+.tb-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  padding: 6px 12px; border-radius: var(--radius-xs);
+  border: 1px solid var(--glass-border);
+  background: var(--glass); color: var(--text-2);
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
+.tb-btn:hover { background: var(--glass-hover); color: var(--text); }
+.tb-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; }
+.tb-btn-primary {
+  background: var(--indigo); border-color: var(--indigo);
+  color: #fff;
+}
+.tb-btn-primary:hover { background: var(--indigo-light); border-color: var(--indigo-light); color: #fff; }
+.tb-btn-danger { background: var(--danger-dim); border-color: rgba(239,68,68,0.3); color: var(--danger); }
+.tb-btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+.tb-clock { font-family: var(--font-data); font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* ── DRILLDOWN BAR ───────────────────────────────────── */
+.drilldown-bar {
+  height: 36px;
+  background: var(--indigo-dim);
+  border-bottom: 1px solid rgba(99,102,241,0.2);
+  display: none; align-items: center; gap: 8px;
+  padding: 0 20px;
+  font-size: 12px; color: var(--text-2);
+  flex-shrink: 0;
+}
+.drilldown-bar.visible { display: flex; }
+.drilldown-crumb { color: var(--indigo-light); cursor: pointer; }
+.drilldown-crumb:hover { text-decoration: underline; }
+.drilldown-sep { opacity: 0.4; }
+.drilldown-current { font-weight: 500; color: var(--text); max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── TABS ────────────────────────────────────────────── */
+.tabs {
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--surface);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.tabs::-webkit-scrollbar { height: 0; }
+.tab {
+  padding: 10px 14px;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  border: none; background: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--text-2); }
+.tab.active { color: var(--indigo-light); border-bottom-color: var(--indigo); }
+
+/* ── CONTENT ─────────────────────────────────────────── */
+.content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ── METRIC CARDS ────────────────────────────────────── */
+.metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.metric-card {
+  background: var(--surface2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.5s ease both;
+  transition: border-color 0.2s, transform 0.15s;
+  cursor: default;
+}
+.metric-card:hover { border-color: rgba(255,255,255,0.14); transform: translateY(-1px); }
+.metric-accent {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px; border-radius: var(--radius) var(--radius) 0 0;
+}
+.metric-icon-wrap {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-xs);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+}
+.metric-icon-wrap svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+.metric-label { font-size: 11px; font-weight: 500; color: var(--text-3); letter-spacing: 0.03em; margin-bottom: 4px; text-transform: uppercase; }
+.metric-value { font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-family: var(--font-data); }
+.metric-meta { font-size: 11px; color: var(--text-3); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+.metric-delta { font-size: 11px; font-weight: 600; }
+.delta-up { color: var(--success); }
+.delta-dn { color: var(--danger); }
+/* Metric glow on load */
+@keyframes metric-glow {
+  0% { box-shadow: 0 0 0 0 var(--glow-c); }
+  40% { box-shadow: 0 0 20px 4px var(--glow-c); }
+  100% { box-shadow: 0 0 0 0 var(--glow-c); }
+}
+
+/* ── CARDS / PANELS ──────────────────────────────────── */
+.card {
+  background: var(--surface2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: rgba(255,255,255,0.12); }
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.card-title svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; opacity: 0.6; }
+.card-actions { display: flex; align-items: center; gap: 8px; }
+.card-body { padding: 16px 18px; }
+.chart-body { padding: 12px 16px 14px; }
+
+/* ── GRIDS ───────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.grid-3r { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+.grid-3-equal { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.col-2 { grid-column: span 2; }
+
+/* ── BADGES ──────────────────────────────────────────── */
+.badge {
+  font-size: 10px; font-weight: 600; font-family: var(--font-data);
+  padding: 2px 8px; border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+.badge-indigo { background: var(--indigo-dim); color: var(--indigo-light); }
+.badge-success { background: var(--success-dim); color: var(--success); }
+.badge-warning { background: var(--warning-dim); color: var(--warning); }
+.badge-danger  { background: var(--danger-dim);  color: var(--danger);  }
+.badge-info    { background: var(--info-dim);    color: var(--info);    }
+.badge-purple  { background: var(--purple-dim);  color: var(--purple);  }
+.badge-muted   { background: rgba(71,85,105,0.15); color: var(--text-3); }
+
+/* ── TABLES ──────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; overflow-y: auto; max-height: 340px; }
+.table-wrap.tall { max-height: 480px; }
+table { width: 100%; border-collapse: collapse; font-family: var(--font-data); }
+thead th {
+  font-size: 10px; font-weight: 600; color: var(--text-3);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 8px 14px; text-align: left;
+  background: var(--surface);
+  border-bottom: 1px solid var(--glass-border);
+  position: sticky; top: 0; z-index: 2;
+  white-space: nowrap;
+}
+tbody td {
+  font-size: 12px; color: var(--text-2);
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.1s;
+  vertical-align: middle;
+}
+tbody tr:hover td { background: var(--glass); }
+tbody tr:last-child td { border-bottom: none; }
+.td-primary { font-weight: 500; color: var(--text); font-size: 12px; }
+.td-url { color: var(--info); font-size: 11px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-mono { font-family: var(--font-data); }
+.pos-1-3  { color: var(--success); font-weight: 600; }
+.pos-4-10 { color: var(--warning); font-weight: 600; }
+.pos-11p  { color: var(--danger);  font-weight: 600; }
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-ui); font-size: 12px; font-weight: 500;
+  padding: 6px 12px; border-radius: var(--radius-xs);
+  border: 1px solid var(--glass-border);
+  background: var(--glass); color: var(--text-2);
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--glass-hover); color: var(--text); }
+.btn:active { transform: scale(0.97); }
+.btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+.btn-sm { padding: 4px 9px; font-size: 11px; }
+.btn-indigo { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.btn-indigo:hover { background: var(--indigo-light); border-color: var(--indigo-light); color: #fff; }
+.btn-success { background: var(--success-dim); border-color: rgba(16,185,129,0.3); color: var(--success); }
+.btn-success:hover { background: rgba(16,185,129,0.2); }
+.btn-warning { background: var(--warning-dim); border-color: rgba(245,158,11,0.3); color: var(--warning); }
+.btn-warning:hover { background: rgba(245,158,11,0.2); }
+.btn-danger { background: var(--danger-dim); border-color: rgba(239,68,68,0.3); color: var(--danger); }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+/* ── INPUTS ──────────────────────────────────────────── */
+.input {
+  background: var(--surface3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xs);
+  padding: 7px 12px;
+  font-family: var(--font-ui); font-size: 12px;
+  color: var(--text); outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.input:focus { border-color: rgba(99,102,241,0.5); }
+.input::placeholder { color: var(--text-3); }
+.input-label { font-size: 11px; font-weight: 500; color: var(--text-3); margin-bottom: 5px; display: block; letter-spacing: 0.02em; }
+.input-hint { font-size: 10px; color: var(--text-4); margin-top: 4px; line-height: 1.5; }
+.form-row { display: flex; flex-direction: column; gap: 0; margin-bottom: 14px; }
+
+/* Search filter */
+.search-filter {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xs);
+  padding: 0 10px;
+  transition: border-color 0.15s;
+}
+.search-filter:focus-within { border-color: rgba(99,102,241,0.4); }
+.search-filter svg { width: 13px; height: 13px; stroke: var(--text-3); fill: none; stroke-width: 2; flex-shrink: 0; }
+.search-filter input { background: none; border: none; outline: none; font-family: var(--font-ui); font-size: 12px; color: var(--text); padding: 7px 0; width: 180px; }
+.search-filter input::placeholder { color: var(--text-3); }
+
+/* ── EMPTY / LOADING STATES ──────────────────────────── */
+.state-empty, .state-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 48px 24px; text-align: center; color: var(--text-3);
+}
+.state-empty svg, .state-loading svg { width: 36px; height: 36px; stroke: var(--text-4); fill: none; stroke-width: 1.2; }
+.state-empty h4, .state-loading h4 { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.state-empty p, .state-loading p { font-size: 12px; line-height: 1.6; max-width: 320px; }
+.spin { animation: spin 0.9s linear infinite; }
+
+/* ── TERMINAL / ACTIVITY LOG ────────────────────────── */
+.activity-log {
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+.log-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--glass-border);
+}
+.log-header-title { font-size: 11px; font-weight: 500; color: var(--text-3); }
+.log-body { padding: 10px; height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.log-line { display: flex; gap: 8px; align-items: baseline; font-family: var(--font-data); font-size: 11px; }
+.log-ts { color: var(--text-4); width: 60px; flex-shrink: 0; }
+.log-tag { width: 48px; flex-shrink: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; border-radius: 3px; padding: 0 4px; text-align: center; }
+.log-msg { color: var(--text-2); }
+.log-ok .log-tag    { background: var(--success-dim); color: var(--success); }
+.log-warn .log-tag  { background: var(--warning-dim); color: var(--warning); }
+.log-err .log-tag   { background: var(--danger-dim);  color: var(--danger);  }
+.log-info .log-tag  { background: var(--info-dim);    color: var(--info);    }
+.log-ai .log-tag    { background: var(--purple-dim);  color: var(--purple);  }
+
+/* ── TOAST ───────────────────────────────────────────── */
+#toasts {
+  position: fixed; top: 16px; right: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 9999; pointer-events: none;
+}
+.toast {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  min-width: 300px; max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  animation: slideIn 0.22s ease;
+  pointer-events: auto;
+  border-left: 3px solid;
+}
+.toast-success { border-left-color: var(--success); }
+.toast-warning { border-left-color: var(--warning); }
+.toast-danger  { border-left-color: var(--danger);  }
+.toast-info    { border-left-color: var(--indigo);  }
+.toast-icon { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+.toast-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+.toast-success .toast-icon { color: var(--success); }
+.toast-warning .toast-icon { color: var(--warning); }
+.toast-danger  .toast-icon { color: var(--danger);  }
+.toast-info    .toast-icon { color: var(--indigo-light); }
+.toast-body { flex: 1; }
+.toast-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.toast-msg { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+.toast-close { background: none; border: none; color: var(--text-3); cursor: pointer; font-size: 16px; line-height: 1; padding: 0; }
+.toast-close:hover { color: var(--text); }
+
+/* ── AUTH OVERLAY ────────────────────────────────────── */
+.auth-overlay {
+  position: fixed; inset: 0;
+  background: rgba(7, 9, 14, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.auth-card {
+  background: var(--surface2);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 40px 44px;
+  max-width: 460px; width: 90%;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.1);
+  text-align: center;
+}
+.auth-logo {
+  width: 56px; height: 56px;
+  background: var(--indigo-dim);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.auth-logo svg { width: 26px; height: 26px; fill: var(--indigo-light); }
+.auth-card h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+.auth-card p { font-size: 13px; color: var(--text-2); line-height: 1.7; margin-bottom: 24px; }
+.auth-scopes {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--surface3);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+.scope-item { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-2); }
+.scope-check { width: 16px; height: 16px; background: var(--success-dim); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.scope-check svg { width: 9px; height: 9px; stroke: var(--success); fill: none; stroke-width: 2.5; }
+.btn-auth-connect {
+  width: 100%;
+  background: var(--indigo); border: 1px solid var(--indigo);
+  color: #fff; border-radius: var(--radius-sm);
+  font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+  padding: 12px 24px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.15s;
+}
+.btn-auth-connect:hover { background: var(--indigo-light); border-color: var(--indigo-light); }
+.btn-auth-connect svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+.auth-note { font-size: 11px; color: var(--text-3); margin-top: 14px; line-height: 1.6; }
+
+/* ── STATUS BAR ──────────────────────────────────────── */
+.statusbar {
+  height: 30px;
+  background: var(--surface);
+  border-top: 1px solid var(--glass-border);
+  display: flex; align-items: center; gap: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sb-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 14px;
+  font-size: 11px; font-family: var(--font-data); color: var(--text-3);
+  border-right: 1px solid var(--glass-border);
+  height: 100%;
+  white-space: nowrap;
+}
+.sb-item svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 1.5; opacity: 0.6; }
+.sb-item span.highlight { color: var(--indigo-light); font-weight: 500; }
+.sb-item.right { margin-left: auto; border-right: none; border-left: 1px solid var(--glass-border); }
+
+/* ── POSITION DISTRIBUTION ───────────────────────────── */
+.pos-bars { display: flex; align-items: flex-end; gap: 6px; height: 64px; padding: 0 2px; }
+.pos-bar-group { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+.pos-bar-fill { width: 100%; border-radius: 3px 3px 0 0; min-height: 3px; transition: height 0.7s cubic-bezier(0.34,1.56,0.64,1); }
+.pos-bar-lbl { font-size: 9px; color: var(--text-3); font-family: var(--font-data); }
+.pos-bar-count { font-size: 9px; font-weight: 600; }
+
+/* ── OPPORTUNITY SCORER ──────────────────────────────── */
+.opp-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.opp-row:last-child { border-bottom: none; }
+.opp-query { flex: 1; font-size: 12px; color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opp-meta { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.opp-score-bar { width: 80px; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.opp-score-fill { height: 100%; border-radius: 2px; }
+
+/* ── INTENT TAGS ─────────────────────────────────────── */
+.intent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.intent-item { background: var(--surface3); border-radius: var(--radius-sm); padding: 10px 12px; }
+.intent-label { font-size: 10px; font-weight: 600; color: var(--text-3); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+.intent-value { font-size: 18px; font-weight: 700; font-family: var(--font-data); letter-spacing: -0.02em; }
+.intent-sub { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+/* ── CANNIBALIZATION ─────────────────────────────────── */
+.cannibal-row td { background: rgba(239,68,68,0.03); }
+.risk-high { color: var(--danger); font-weight: 600; }
+.risk-med  { color: var(--warning); font-weight: 600; }
+.risk-low  { color: var(--text-3); }
+
+/* ── CONFIG GRID ─────────────────────────────────────── */
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.config-info-box {
+  background: var(--surface3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 11px; color: var(--text-2);
+  line-height: 1.9;
+  margin-top: 16px;
+}
+.config-info-box strong { color: var(--indigo-light); }
+.config-info-box code { 
+  background: var(--surface); color: var(--info);
+  padding: 1px 5px; border-radius: 3px; font-family: var(--font-data);
+}
+
+/* ── ANIMATIONS ──────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideOut {
+  to { opacity: 0; transform: translateX(16px); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+@keyframes metric-shimmer {
+  0% { box-shadow: 0 0 0 0 var(--glow-c, transparent); }
+  40% { box-shadow: 0 0 18px 3px var(--glow-c, transparent); }
+  100% { box-shadow: 0 0 0 0 var(--glow-c, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 860px) {
+  :root { --sidebar-w: 60px; }
+  .sidebar { width: 60px; }
+  .brand-wordmark, .nav-label, .nav-section, .sb-conn-text, .sb-conn-label { display: none; }
+  .grid-2, .grid-3, .grid-3r, .grid-3-equal { grid-template-columns: 1fr; }
+  .col-2 { grid-column: span 1; }
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .config-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+  .content { padding: 12px; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<div class="shell">
+  <!-- ── SIDEBAR ──────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="brand-wordmark">
+        <div class="brand-name">Search Intel OS</div>
+        <div class="brand-sub">HGM · AEO / GEO / SEO</div>
+      </div>
+    </div>
+
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" data-view="dashboard">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      <span class="nav-label">Dashboard</span>
+    </button>
+
+    <div class="nav-section">Data Sources</div>
+    <button class="nav-item" data-view="gsc">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span class="nav-label">Search Console</span>
+    </button>
+    <button class="nav-item" data-view="ga4">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span class="nav-label">GA4 Analytics</span>
+    </button>
+
+    <div class="nav-section">Intelligence</div>
+    <button class="nav-item" data-view="aeo">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12l8-8"/><path d="M20 4v4h-4"/></svg>
+      <span class="nav-label">AEO / GEO Intel</span>
+    </button>
+    <button class="nav-item" data-view="opportunities">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      <span class="nav-label">Opportunities</span>
+      <span class="nav-badge" id="nav-opp-count" style="display:none">–</span>
+    </button>
+    <button class="nav-item" data-view="cannibalization">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span class="nav-label">Cannibalization</span>
+    </button>
+
+    <div class="nav-section">Settings</div>
+    <button class="nav-item" data-view="config">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="nav-label">API Config</span>
+    </button>
+
+    <div class="sb-footer">
+      <div class="sb-conn-dot" id="conn-dot"></div>
+      <div>
+        <div class="sb-conn-text" id="conn-text">Not connected</div>
+        <div class="sb-conn-label" id="conn-label">Authenticate to sync</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN COLUMN ──────────────────────────────────── -->
+  <div class="main-col">
+    <!-- Topbar -->
+    <div class="topbar">
+      <button class="btn-collapse" id="btn-collapse" title="Toggle sidebar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-title">Search <span>Intel OS</span></div>
+      <div class="topbar-sep"></div>
+      <span class="status-pill pill-idle" id="pill-status"><span class="pill-dot"></span><span id="pill-text">Idle</span></span>
+      <div class="tb-spacer"></div>
+      <div class="tb-clock" id="tb-clock">00:00:00</div>
+      <div class="topbar-sep"></div>
+      <select class="date-sel" id="date-range" title="Date range">
+        <option value="7">Last 7 days</option>
+        <option value="28" selected>Last 28 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="180">Last 180 days</option>
+      </select>
+      <button class="tb-btn" id="btn-refresh" title="Refresh data">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+        Refresh
+      </button>
+      <button class="tb-btn tb-btn-primary" id="btn-auth">
+        <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Connect Google
+      </button>
+    </div>
+
+    <!-- Drilldown breadcrumb -->
+    <div class="drilldown-bar" id="drilldown-bar">
+      <span class="drilldown-crumb" onclick="App.clearDrilldown()">← All Queries</span>
+      <span class="drilldown-sep">›</span>
+      <span class="drilldown-current" id="drilldown-label"></span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="tab-bar"></div>
+
+    <!-- Content -->
+    <div class="content" id="content"></div>
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <div class="sb-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="sb-sync">Never synced</span>
+      </div>
+      <div class="sb-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        <span id="sb-domain">No domain configured</span>
+      </div>
+      <div class="sb-item">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span id="sb-queries">0 queries</span>
+      </div>
+      <div class="sb-item right">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>HGM Search Intel OS <span class="highlight">v3.2</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AUTH OVERLAY ─────────────────────────────────────── -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <h2>Connect your data</h2>
+    <p>Authenticate with Google to pull live Search Console and Analytics 4 data. Nothing is stored — tokens live in your session only.</p>
+    <div class="auth-scopes">
+      <div class="scope-item"><div class="scope-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Read-only access to Google Search Console</div>
+      <div class="scope-item"><div class="scope-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Read-only access to Google Analytics 4</div>
+      <div class="scope-item"><div class="scope-check"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>Session-only — no server storage</div>
+    </div>
+    <button class="btn-auth-connect" id="btn-overlay-connect">
+      <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Authenticate with Google
+    </button>
+    <p class="auth-note">Needs a configured OAuth Client ID.<br>Set yours in <strong>API Config</strong> first.</p>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  SEARCH INTEL OS v3.2  —  HGM
+//  Clean modern UI · GSC + GA4 live APIs
+// ══════════════════════════════════════════════════════════
+
+const CONFIG = {
+  CLIENT_ID: '',
+  GSC_SITE:  '',
+  GA4_PROPERTY: '',
+  SCOPES: 'https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly'
+};
+
+const S = {               // App state
+  token: null,
+  tokenExpiry: null,
+  view: 'dashboard',
+  tab: 0,
+  dateRange: 28,
+  filterText: '',
+  drilldownQuery: null,
+  // Data
+  gscRows: null,          // query-level
+  gscPages: null,         // page-level
+  gscTimeSeries: null,    // date-level
+  gscDevices: null,
+  ga4Overview: null,
+  ga4Channels: null,
+  ga4Pages: null,
+  ga4TimeSeries: null,
+  // Charts
+  charts: {},
+  // Log
+  logLines: [],
+  lastSync: null
+};
+
+const VIEWS = {
+  dashboard:       { tabs: ['Overview', 'Performance Trend', 'Top Queries', 'Top Pages'] },
+  gsc:             { tabs: ['Query Explorer', 'Position Map', 'CTR Analysis', 'Device Split'] },
+  ga4:             { tabs: ['Overview', 'Channels', 'Pages & Content'] },
+  aeo:             { tabs: ['AI Overview Detection', 'Intent Radar', 'Snippet Compliance', 'GEO Signals'] },
+  opportunities:   { tabs: ['Quick Wins', 'Featured Snippet Targets', 'Ranking Gaps'] },
+  cannibalization: { tabs: ['Query Conflicts', 'Page Overlap'] },
+  config:          { tabs: ['API Credentials', 'Setup Guide'] }
+};
+
+// ─── CHART DEFAULTS ───────────────────────────────────────
+Chart.defaults.color = '#475569';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 16;
+
+// ─── FORMATTERS ───────────────────────────────────────────
+const F = {
+  n:   v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : Math.round(v).toLocaleString(),
+  pct: v => (v * 100).toFixed(1) + '%',
+  pos: v => (+v).toFixed(1),
+  dur: v => { const m = Math.floor(v/60), s = Math.round(v%60); return `${m}m ${s}s`; },
+  date: d => typeof d === 'string' && d.length === 8 ? `${d.slice(4,6)}/${d.slice(6)}` : (d||'').slice(5),
+  pctDelta: (v, invert) => {
+    if (!v || isNaN(v)) return '';
+    const up = invert ? v < 0 : v > 0;
+    return `<span class="${up ? 'delta-up' : 'delta-dn'}">${v > 0 ? '+' : ''}${v.toFixed(1)}%</span>`;
+  }
+};
+
+function posClass(p) {
+  return p <= 3 ? 'pos-1-3' : p <= 10 ? 'pos-4-10' : 'pos-11p';
+}
+
+// ─── TOAST ────────────────────────────────────────────────
+const Toast = {
+  show(type, title, msg, dur = 5000) {
+    const icons = {
+      success: '<polyline points="20 6 9 17 4 12"/>',
+      warning: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      danger: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+      info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+    };
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.innerHTML = `
+      <div class="toast-icon"><svg viewBox="0 0 24 24">${icons[type]||icons.info}</svg></div>
+      <div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>
+      <button class="toast-close" onclick="this.closest('.toast').remove()">×</button>`;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(() => { el.style.animation = 'slideOut 0.22s ease both'; setTimeout(() => el.remove(), 220); }, dur);
+  }
+};
+
+// ─── ACTIVITY LOG ─────────────────────────────────────────
+const Log = {
+  add(type, tag, msg) {
+    const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    S.logLines.unshift({ type, tag, msg, ts });
+    if (S.logLines.length > 80) S.logLines.pop();
+    const el = document.getElementById('log-body');
+    if (el) this._render(el);
+  },
+  _render(el) {
+    el.innerHTML = S.logLines.slice(0, 40).map(l =>
+      `<div class="log-line log-${l.type}"><span class="log-ts">${l.ts}</span><span class="log-tag">${l.tag}</span><span class="log-msg">${l.msg}</span></div>`
+    ).join('');
+  },
+  renderTo(el) { if (el) this._render(el); }
+};
+
+// ─── CLOCK ────────────────────────────────────────────────
+setInterval(() => {
+  const el = document.getElementById('tb-clock');
+  if (el) el.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+}, 1000);
+
+// ─── SIDEBAR COLLAPSE ─────────────────────────────────────
+document.getElementById('btn-collapse').onclick = () =>
+  document.getElementById('sidebar').classList.toggle('collapsed');
+
+// ─── NAV ──────────────────────────────────────────────────
+document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    App.go(btn.dataset.view);
+  };
+});
+
+// ─── AUTH ─────────────────────────────────────────────────
+const Auth = {
+  client: null,
+  connect() {
+    const cid = CONFIG.CLIENT_ID || localStorage.getItem('si_client_id');
+    if (!cid) {
+      App.go('config');
+      Toast.show('warning', 'Client ID required', 'Enter your OAuth Client ID in API Config first.');
+      return;
+    }
+    CONFIG.CLIENT_ID = cid;
+    try {
+      this.client = google.accounts.oauth2.initTokenClient({
+        client_id: CONFIG.CLIENT_ID,
+        scope: CONFIG.SCOPES,
+        callback: r => {
+          if (r.error) { Toast.show('danger', 'Auth failed', r.error); Log.add('err', 'AUTH', r.error); return; }
+          S.token = r.access_token;
+          S.tokenExpiry = Date.now() + r.expires_in * 1000;
+          this._onSignIn();
+        }
+      });
+      this.client.requestAccessToken();
+    } catch(e) {
+      Toast.show('danger', 'GIS not ready', 'Google Identity Services is still loading. Wait a moment and try again.');
+    }
+  },
+  _onSignIn() {
+    Log.add('ok', 'AUTH', 'Token acquired — scopes: webmasters + analytics');
+    document.getElementById('conn-dot').className = 'sb-conn-dot live';
+    document.getElementById('conn-text').textContent = 'Connected';
+    document.getElementById('conn-label').textContent = 'Google';
+    const authBtn = document.getElementById('btn-auth');
+    authBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out`;
+    authBtn.className = 'tb-btn tb-btn-danger';
+    document.getElementById('pill-status').className = 'status-pill pill-live';
+    document.getElementById('pill-text').textContent = 'Live';
+    document.getElementById('auth-overlay').style.display = 'none';
+    Toast.show('success', 'Connected', 'Fetching GSC and GA4 data…');
+    App.fetchAll();
+  },
+  signOut() {
+    S.token = null; S.gscRows = null; S.ga4Overview = null;
+    document.getElementById('conn-dot').className = 'sb-conn-dot';
+    document.getElementById('conn-text').textContent = 'Not connected';
+    document.getElementById('conn-label').textContent = 'Authenticate to sync';
+    const authBtn = document.getElementById('btn-auth');
+    authBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Connect Google`;
+    authBtn.className = 'tb-btn tb-btn-primary';
+    document.getElementById('pill-status').className = 'status-pill pill-idle';
+    document.getElementById('pill-text').textContent = 'Idle';
+    document.getElementById('auth-overlay').style.display = 'flex';
+    Toast.show('info', 'Signed out', 'Session cleared.');
+  },
+  ok() { return !!(S.token && Date.now() < S.tokenExpiry); }
+};
+document.getElementById('btn-auth').onclick = () => Auth.ok() ? Auth.signOut() : Auth.connect();
+document.getElementById('btn-overlay-connect').onclick = () => Auth.connect();
+
+// ─── API LAYER ─────────────────────────────────────────────
+const API = {
+  _dr() {
+    const e = new Date(), s = new Date();
+    s.setDate(e.getDate() - S.dateRange);
+    return { startDate: s.toISOString().slice(0,10), endDate: e.toISOString().slice(0,10) };
+  },
+  async gscPost(path, body) {
+    const r = await fetch(`https://www.googleapis.com/webmasters/v3${path}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${S.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { const t = await r.text(); throw new Error(`GSC ${r.status}: ${t.slice(0,120)}`); }
+    return r.json();
+  },
+  async ga4Post(body) {
+    const prop = CONFIG.GA4_PROPERTY || localStorage.getItem('si_ga4');
+    if (!prop) throw new Error('GA4 property not configured');
+    const r = await fetch(`https://analyticsdata.googleapis.com/v1beta/${prop}:runReport`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${S.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { const t = await r.text(); throw new Error(`GA4 ${r.status}: ${t.slice(0,120)}`); }
+    return r.json();
+  },
+  site() { return CONFIG.GSC_SITE || localStorage.getItem('si_site') || ''; },
+  async fetchGSCQueries() {
+    const { startDate, endDate } = this._dr();
+    Log.add('info', 'GSC', `Queries ${startDate} → ${endDate}`);
+    return this.gscPost(`/sites/${encodeURIComponent(this.site())}/searchAnalytics/query`, {
+      startDate, endDate, dimensions: ['query'], rowLimit: 500
+    });
+  },
+  async fetchGSCPages() {
+    const { startDate, endDate } = this._dr();
+    return this.gscPost(`/sites/${encodeURIComponent(this.site())}/searchAnalytics/query`, {
+      startDate, endDate, dimensions: ['page'], rowLimit: 200
+    });
+  },
+  async fetchGSCTimeSeries() {
+    const { startDate, endDate } = this._dr();
+    return this.gscPost(`/sites/${encodeURIComponent(this.site())}/searchAnalytics/query`, {
+      startDate, endDate, dimensions: ['date'], rowLimit: 200
+    });
+  },
+  async fetchGSCDevices() {
+    const { startDate, endDate } = this._dr();
+    return this.gscPost(`/sites/${encodeURIComponent(this.site())}/searchAnalytics/query`, {
+      startDate, endDate, dimensions: ['device'], rowLimit: 5
+    });
+  },
+  async fetchGSCDrilldown(query) {
+    const { startDate, endDate } = this._dr();
+    return this.gscPost(`/sites/${encodeURIComponent(this.site())}/searchAnalytics/query`, {
+      startDate, endDate, dimensions: ['page'],
+      dimensionFilterGroups: [{ filters: [{ dimension: 'query', operator: 'equals', expression: query }] }],
+      rowLimit: 25
+    });
+  },
+  async fetchGA4Overview() {
+    const { startDate, endDate } = this._dr();
+    Log.add('info', 'GA4', 'Overview metrics');
+    return this.ga4Post({ dateRanges: [{ startDate, endDate }], metrics: [
+      {name:'sessions'},{name:'totalUsers'},{name:'newUsers'},
+      {name:'engagementRate'},{name:'averageSessionDuration'},
+      {name:'screenPageViews'},{name:'bounceRate'},{name:'conversions'}
+    ]});
+  },
+  async fetchGA4Channels() {
+    const { startDate, endDate } = this._dr();
+    return this.ga4Post({ dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name:'sessionDefaultChannelGrouping' }],
+      metrics: [{name:'sessions'},{name:'totalUsers'},{name:'engagementRate'},{name:'conversions'}],
+      orderBys: [{ metric: { metricName:'sessions' }, desc: true }]
+    });
+  },
+  async fetchGA4Pages() {
+    const { startDate, endDate } = this._dr();
+    return this.ga4Post({ dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name:'pagePath' }],
+      metrics: [{name:'screenPageViews'},{name:'totalUsers'},{name:'averageSessionDuration'},{name:'bounceRate'}],
+      orderBys: [{ metric: { metricName:'screenPageViews' }, desc: true }], limit: 100
+    });
+  },
+  async fetchGA4TimeSeries() {
+    const { startDate, endDate } = this._dr();
+    return this.ga4Post({ dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name:'date' }],
+      metrics: [{name:'sessions'},{name:'totalUsers'}],
+      orderBys: [{ dimension: { dimensionName:'date' } }]
+    });
+  }
+};
+
+// ─── CHART HELPERS ─────────────────────────────────────────
+function killChart(id) {
+  if (S.charts[id]) { S.charts[id].destroy(); delete S.charts[id]; }
+}
+
+function lineChart(id, labels, datasets, opts = {}) {
+  const ctx = document.getElementById(id); if (!ctx) return;
+  killChart(id);
+  S.charts[id] = new Chart(ctx, {
+    type: 'line', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: datasets.length > 1 } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxTicksLimit: 10 } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true, ...( opts.y || {}) }
+      },
+      interaction: { mode: 'index', intersect: false },
+      elements: { point: { radius: 0, hitRadius: 10 }, line: { tension: 0.38 } },
+      ...opts
+    }
+  });
+}
+
+function barChart(id, labels, datasets, stacked) {
+  const ctx = document.getElementById(id); if (!ctx) return;
+  killChart(id);
+  S.charts[id] = new Chart(ctx, {
+    type: 'bar', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: datasets.length > 1 } },
+      scales: {
+        x: { grid: { color: 'transparent' }, stacked },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true, stacked }
+      },
+      elements: { bar: { borderRadius: 4 } }
+    }
+  });
+}
+
+function donutChart(id, labels, data, colors) {
+  const ctx = document.getElementById(id); if (!ctx) return;
+  killChart(id);
+  S.charts[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right' } },
+      cutout: '68%'
+    }
+  });
+}
+
+function radarChart(id, labels, datasets) {
+  const ctx = document.getElementById(id); if (!ctx) return;
+  killChart(id);
+  S.charts[id] = new Chart(ctx, {
+    type: 'radar', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { r: {
+        grid: { color: 'rgba(255,255,255,0.06)' },
+        ticks: { display: false },
+        pointLabels: { color: '#94a3b8', font: { size: 11 } }
+      }},
+      plugins: { legend: { display: true } }
+    }
+  });
+}
+
+const COLORS = {
+  indigo:   'rgba(99,102,241,',
+  success:  'rgba(16,185,129,',
+  warning:  'rgba(245,158,11,',
+  danger:   'rgba(239,68,68,',
+  info:     'rgba(56,189,248,',
+  purple:   'rgba(167,139,250,',
+  pink:     'rgba(236,72,153,'
+};
+const C = (k, a = 0.8) => COLORS[k] + a + ')';
+
+// ─── GSC TOTALS ────────────────────────────────────────────
+function gscTotals() {
+  const rows = S.gscRows?.rows || [];
+  const clicks = rows.reduce((s,r) => s+r.clicks, 0);
+  const imp = rows.reduce((s,r) => s+r.impressions, 0);
+  return {
+    clicks, impressions: imp,
+    ctr: imp ? clicks/imp : 0,
+    position: rows.length ? rows.reduce((s,r)=>s+r.position,0)/rows.length : 0
+  };
+}
+
+function ga4vals() {
+  const v = S.ga4Overview?.rows?.[0]?.metricValues;
+  if (!v) return null;
+  return {
+    sessions: +v[0].value, totalUsers: +v[1].value, newUsers: +v[2].value,
+    engRate: +v[3].value, avgDur: +v[4].value, pageviews: +v[5].value,
+    bounceRate: +v[6].value, conversions: +v[7].value
+  };
+}
+
+// ─── EMPTY / LOADING HTML ──────────────────────────────────
+function noAuth() {
+  return `<div class="state-empty"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><h4>Not connected</h4><p>Authenticate with Google to load live data.</p></div>`;
+}
+function noData(msg = 'No data available for this range.') {
+  return `<div class="state-empty"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h4>Nothing here</h4><p>${msg}</p></div>`;
+}
+function loading(msg = 'Loading…') {
+  return `<div class="state-loading"><svg class="spin" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9" stroke="currentColor" fill="none" stroke-width="2"/></svg><p>${msg}</p></div>`;
+}
+
+// ─── METRIC CARD BUILDER ───────────────────────────────────
+function metricCard(label, value, meta, color, iconPath, delay = 0) {
+  const colorMap = {
+    indigo:'#6366f1', success:'#10b981', warning:'#f59e0b', danger:'#ef4444', info:'#38bdf8', purple:'#a78bfa'
+  };
+  const hex = colorMap[color] || colorMap.indigo;
+  const bgRgb = { indigo:'99,102,241', success:'16,185,129', warning:'245,158,11', danger:'239,68,68', info:'56,189,248', purple:'167,139,250' };
+  const rgb = bgRgb[color] || bgRgb.indigo;
+  return `
+    <div class="metric-card" style="animation-delay:${delay}s; --glow-c: rgba(${rgb},0.2); animation: fadeUp 0.5s ease both ${delay}s, metric-shimmer 1.6s ease ${delay + 0.3}s 1;">
+      <div class="metric-accent" style="background: ${hex};"></div>
+      <div class="metric-icon-wrap" style="background: rgba(${rgb},0.12); color: ${hex};">
+        <svg viewBox="0 0 24 24">${iconPath}</svg>
+      </div>
+      <div class="metric-label">${label}</div>
+      <div class="metric-value" style="color: ${hex};">${value}</div>
+      <div class="metric-meta">${meta}</div>
+    </div>`;
+}
+
+// ─── TABLE BUILDERS ────────────────────────────────────────
+function gscQueryTableHTML(rows, limit = 100) {
+  if (!rows || !rows.length) return noData('No query data found.');
+  const display = rows.slice(0, limit);
+  return `<div class="table-wrap tall"><table>
+    <thead><tr><th>Query</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Avg Position</th><th></th></tr></thead>
+    <tbody>${display.map(r => `
+      <tr style="cursor:pointer" onclick="App.drilldown('${r.keys[0].replace(/'/g,"\\'")}')">
+        <td class="td-primary">${r.keys[0]}</td>
+        <td>${F.n(r.clicks)}</td>
+        <td>${F.n(r.impressions)}</td>
+        <td>${F.pct(r.ctr)}</td>
+        <td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td>
+        <td><button class="btn btn-sm" onclick="event.stopPropagation();App.drilldown('${r.keys[0].replace(/'/g,"\\'")}')">Pages →</button></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function gscPageTableHTML(rows, limit = 80) {
+  if (!rows || !rows.length) return noData('No page data found.');
+  return `<div class="table-wrap tall"><table>
+    <thead><tr><th>Page</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Avg Position</th></tr></thead>
+    <tbody>${rows.slice(0,limit).map(r => `
+      <tr>
+        <td class="td-url" title="${r.keys[0]}">${r.keys[0]}</td>
+        <td>${F.n(r.clicks)}</td>
+        <td>${F.n(r.impressions)}</td>
+        <td>${F.pct(r.ctr)}</td>
+        <td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function channelTableHTML() {
+  const rows = S.ga4Channels?.rows || [];
+  if (!rows.length) return noData();
+  return `<div class="table-wrap"><table>
+    <thead><tr><th>Channel</th><th>Sessions</th><th>Users</th><th>Engagement Rate</th><th>Conversions</th></tr></thead>
+    <tbody>${rows.map(r => `
+      <tr>
+        <td class="td-primary">${r.dimensionValues[0].value}</td>
+        <td>${F.n(+r.metricValues[0].value)}</td>
+        <td>${F.n(+r.metricValues[1].value)}</td>
+        <td>${F.pct(+r.metricValues[2].value)}</td>
+        <td>${F.n(+r.metricValues[3].value)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function ga4PageTableHTML() {
+  const rows = S.ga4Pages?.rows || [];
+  if (!rows.length) return noData();
+  return `<div class="table-wrap tall"><table>
+    <thead><tr><th>Path</th><th>Page Views</th><th>Users</th><th>Avg Duration</th><th>Bounce Rate</th></tr></thead>
+    <tbody>${rows.slice(0,80).map(r => `
+      <tr>
+        <td class="td-url">${r.dimensionValues[0].value}</td>
+        <td>${F.n(+r.metricValues[0].value)}</td>
+        <td>${F.n(+r.metricValues[1].value)}</td>
+        <td>${F.dur(+r.metricValues[2].value)}</td>
+        <td>${F.pct(+r.metricValues[3].value)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+// ─── INTELLIGENCE HELPERS ──────────────────────────────────
+function classifyIntents(rows) {
+  const cats = [
+    { label:'Question',   test: q => /^(what|who|when|where|which)\b/.test(q) },
+    { label:'How-to',     test: q => /^how\b/.test(q) },
+    { label:'Best/List',  test: q => /\b(best|top|list|review)\b/.test(q) },
+    { label:'Comparison', test: q => /\b(vs|versus| or )\b/.test(q) },
+    { label:'Definition', test: q => /^(what is|define|meaning of)\b/.test(q) },
+    { label:'Other',      test: () => true }
+  ];
+  const result = cats.map(c => ({ ...c, imp: 0, clicks: 0, count: 0 }));
+  rows.forEach(r => {
+    const q = r.keys[0].toLowerCase();
+    for (const cat of result) {
+      if (cat.test(q)) { cat.imp += r.impressions; cat.clicks += r.clicks; cat.count++; break; }
+    }
+  });
+  return result.filter(c => c.count > 0);
+}
+
+function detectAIOQueries(rows) {
+  return rows.filter(r => {
+    const q = r.keys[0].toLowerCase();
+    return /^(what|how|why|who|when|is|does|can|best|top|list)\b/.test(q) || q.split(' ').length >= 5 || q.includes('?');
+  });
+}
+
+function detectOpportunities(rows) {
+  return rows
+    .filter(r => r.position >= 4 && r.position <= 20 && r.impressions >= 100 && r.ctr < 0.05)
+    .map(r => ({
+      ...r,
+      score: Math.round(((r.impressions / 100) * 0.4) + ((20 - r.position) / 20 * 0.4) + ((0.05 - r.ctr) * 200 * 0.2))
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+function detectCannibalization(rows) {
+  const seen = new Map();
+  const conflicts = [];
+  rows.forEach(r => {
+    const stem = r.keys[0].toLowerCase().replace(/\b(a|an|the|for|in|to|of|and|or)\b/g,'').trim().split(' ').slice(0,3).join(' ');
+    if (seen.has(stem)) {
+      const prev = seen.get(stem);
+      const delta = Math.abs(r.position - prev.position);
+      if (delta < 15) {
+        conflicts.push({ query: r.keys[0], stem, pos1: prev.position, pos2: r.position, delta, clicks: r.clicks + prev.clicks });
+      }
+    } else { seen.set(stem, r); }
+  });
+  return conflicts.sort((a, b) => a.delta - b.delta).slice(0, 40);
+}
+
+function snippetScore(r) {
+  return Math.min(100, Math.round(
+    (r.ctr * 800) +
+    (r.position <= 3 ? 35 : r.position <= 10 ? 15 : 3) +
+    (r.clicks / Math.max(1, r.impressions) * 50)
+  ));
+}
+
+// ─── EXPORT ────────────────────────────────────────────────
+function exportCSV(rows, filename) {
+  const csv = ['Query,Clicks,Impressions,CTR,Position',
+    ...rows.map(r => `"${r.keys[0]}",${r.clicks},${r.impressions},${(r.ctr*100).toFixed(2)}%,${r.position.toFixed(1)}`)
+  ].join('\n');
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})), download: filename });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  Toast.show('success', 'Exported', `${rows.length} rows saved to ${filename}.`);
+}
+
+// ─── APP VIEWS ─────────────────────────────────────────────
+const App = {
+  go(view) {
+    S.view = view; S.tab = 0; this.clearDrilldown();
+    this._renderTabs(); this._render();
+  },
+  _renderTabs() {
+    const tabs = VIEWS[S.view]?.tabs || [];
+    const bar = document.getElementById('tab-bar');
+    bar.innerHTML = tabs.map((t,i) => `<button class="tab${i===S.tab?' active':''}" data-i="${i}">${t}</button>`).join('');
+    bar.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+      S.tab = +b.dataset.i; S.filterText = '';
+      bar.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      this._render();
+    });
+  },
+  _render() {
+    Object.keys(S.charts).forEach(id => { if (!document.getElementById(id)) { S.charts[id]?.destroy(); delete S.charts[id]; } });
+    const el = document.getElementById('content');
+    if (!Auth.ok()) { el.innerHTML = `<div class="card">${noAuth()}</div>`; return; }
+    const v = S.view, t = S.tab;
+    if (v === 'dashboard')       this._dashboard(t, el);
+    else if (v === 'gsc')        this._gsc(t, el);
+    else if (v === 'ga4')        this._ga4(t, el);
+    else if (v === 'aeo')        this._aeo(t, el);
+    else if (v === 'opportunities') this._opportunities(t, el);
+    else if (v === 'cannibalization') this._cannibalization(t, el);
+    else if (v === 'config')     this._config(t, el);
+  },
+
+  // ── DASHBOARD ──────────────────────────────────────────
+  _dashboard(t, el) {
+    const tot = gscTotals(); const g = ga4vals();
+    if (t === 0) {
+      el.innerHTML = `
+        <div class="metrics-grid" id="m-strip"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div class="card-title"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>GSC Performance</div><span class="badge badge-success">Live</span></div>
+            <div class="chart-body" style="height:200px"><canvas id="ch-dash-gsc"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>GA4 Sessions</div><span class="badge badge-indigo">Live</span></div>
+            <div class="chart-body" style="height:200px"><canvas id="ch-dash-ga4"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activity Log</div><span class="badge badge-muted">${S.logLines.length} events</span></div>
+          <div class="activity-log" style="border:none;border-radius:0"><div class="log-body" id="log-body"></div></div>
+        </div>`;
+      const strip = document.getElementById('m-strip');
+      strip.innerHTML =
+        metricCard('Total Clicks', F.n(tot.clicks), `${S.dateRange}d organic`, 'success', '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', 0) +
+        metricCard('Impressions', F.n(tot.impressions), 'Search Console', 'indigo', '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>', 0.07) +
+        metricCard('Avg CTR', F.pct(tot.ctr), 'All queries', 'warning', '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>', 0.14) +
+        metricCard('Avg Position', F.pos(tot.position), 'Organic ranking', 'danger', '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', 0.21) +
+        metricCard('GA4 Sessions', g ? F.n(g.sessions) : '—', `${S.dateRange}d window`, 'purple', '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', 0.28);
+      setTimeout(() => {
+        const gts = S.gscTimeSeries?.rows || [];
+        if (gts.length) {
+          lineChart('ch-dash-gsc', gts.map(r=>F.date(r.keys[0])), [
+            { label:'Clicks', data:gts.map(r=>r.clicks), borderColor:C('success'), backgroundColor:C('success',0.06), fill:true },
+            { label:'Imp÷10', data:gts.map(r=>Math.round(r.impressions/10)), borderColor:C('indigo',0.5), fill:false }
+          ]);
+        }
+        const ga4ts = S.ga4TimeSeries?.rows || [];
+        if (ga4ts.length) {
+          lineChart('ch-dash-ga4', ga4ts.map(r=>F.date(r.dimensionValues[0].value)), [
+            { label:'Sessions', data:ga4ts.map(r=>+r.metricValues[0].value), borderColor:C('indigo'), backgroundColor:C('indigo',0.06), fill:true },
+            { label:'Users', data:ga4ts.map(r=>+r.metricValues[1].value), borderColor:C('success',0.6), fill:false }
+          ]);
+        }
+        Log.renderTo(document.getElementById('log-body'));
+      }, 50);
+    }
+    else if (t === 1) {
+      el.innerHTML = `<div class="card"><div class="card-head"><div class="card-title">Organic Performance Trend</div></div><div class="chart-body" style="height:320px"><canvas id="ch-trend-full"></canvas></div></div>`;
+      const ts = S.gscTimeSeries?.rows || [];
+      setTimeout(() => lineChart('ch-trend-full', ts.map(r=>F.date(r.keys[0])), [
+        { label:'Clicks', data:ts.map(r=>r.clicks), borderColor:C('success'), backgroundColor:C('success',0.07), fill:true, yAxisID:'y' },
+        { label:'Impressions', data:ts.map(r=>r.impressions), borderColor:C('indigo',0.6), fill:false, yAxisID:'y1' }
+      ], { scales: { x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{maxTicksLimit:12}}, y:{grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}, y1:{type:'linear',position:'right',grid:{display:false},beginAtZero:true} }}), 50);
+    }
+    else if (t === 2) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Top Queries</div>
+            <div class="card-actions">
+              <div class="search-filter"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input id="q-filter" placeholder="Filter queries…" value="${S.filterText}"></div>
+              <button class="btn btn-sm btn-success" onclick="exportCSV(App._filteredRows(),'gsc-queries.csv')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+            </div>
+          </div>
+          ${gscQueryTableHTML(this._filteredRows())}
+        </div>`;
+      document.getElementById('q-filter').oninput = e => { S.filterText = e.target.value; this._render(); };
+    }
+    else if (t === 3) {
+      el.innerHTML = `<div class="card"><div class="card-head"><div class="card-title">Top Pages</div></div>${gscPageTableHTML(S.gscPages?.rows)}</div>`;
+    }
+  },
+
+  // ── GSC ────────────────────────────────────────────────
+  _gsc(t, el) {
+    const rows = S.gscRows?.rows || [];
+    if (t === 0) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Query Explorer</div>
+            <div class="card-actions">
+              <div class="search-filter"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input id="q-filter2" placeholder="Filter…" value="${S.filterText}"></div>
+              <button class="btn btn-sm btn-success" onclick="exportCSV(App._filteredRows(),'gsc-queries.csv')"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>
+            </div>
+          </div>
+          ${gscQueryTableHTML(this._filteredRows())}
+        </div>`;
+      document.getElementById('q-filter2').oninput = e => { S.filterText = e.target.value; this._render(); };
+    }
+    else if (t === 1) {
+      const bands = [
+        {l:'1–3',   min:1, max:3.99},
+        {l:'4–10',  min:4, max:10.99},
+        {l:'11–20', min:11,max:20.99},
+        {l:'21–50', min:21,max:50.99},
+        {l:'51+',   min:51,max:100}
+      ].map(b => ({
+        ...b,
+        count: rows.filter(r=>r.position>=b.min&&r.position<=b.max).length,
+        clicks: rows.filter(r=>r.position>=b.min&&r.position<=b.max).reduce((s,r)=>s+r.clicks,0)
+      }));
+      const maxC = Math.max(...bands.map(b=>b.count), 1);
+      el.innerHTML = `
+        <div class="grid-3r">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Position Distribution</div></div>
+            <div class="card-body">
+              <div class="pos-bars">${bands.map((b,i)=>`
+                <div class="pos-bar-group">
+                  <div class="pos-bar-count" style="color:${['#10b981','#6366f1','#f59e0b','#ef4444','#94a3b8'][i]}">${b.count}</div>
+                  <div class="pos-bar-fill" style="height:${Math.max(3,b.count/maxC*56)}px;background:${['rgba(16,185,129,0.6)','rgba(99,102,241,0.6)','rgba(245,158,11,0.6)','rgba(239,68,68,0.5)','rgba(148,163,184,0.3)'][i]}"></div>
+                  <div class="pos-bar-lbl">${b.l}</div>
+                </div>`).join('')}
+              </div>
+              <div style="margin-top:16px;display:flex;flex-direction:column;gap:6px">
+                ${bands.map(b=>`
+                  <div style="display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+                    <span style="color:var(--text-3)">Pos ${b.l}</span>
+                    <span style="font-weight:500">${b.count} queries</span>
+                    <span style="color:var(--success)">${F.n(b.clicks)} clicks</span>
+                  </div>`).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">CTR vs Position Scatter</div></div>
+            <div class="chart-body" style="height:300px"><canvas id="ch-scatter"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Clicks & Impressions by Position Band</div></div>
+          <div class="chart-body" style="height:220px"><canvas id="ch-bands"></canvas></div>
+        </div>`;
+      setTimeout(() => {
+        barChart('ch-bands', bands.map(b=>b.l), [
+          { label:'Clicks', data:bands.map(b=>b.clicks), backgroundColor:C('success',0.65) },
+          { label:'Impressions÷10', data:bands.map(b=>Math.round(bands[0]?.clicks?b.clicks*10:0)), backgroundColor:C('indigo',0.4) }
+        ]);
+        const ctx = document.getElementById('ch-scatter');
+        if (ctx) {
+          killChart('ch-scatter');
+          S.charts['ch-scatter'] = new Chart(ctx, {
+            type:'scatter',
+            data:{ datasets:[{
+              label:'Queries',
+              data: rows.slice(0,200).map(r=>({x:+r.position.toFixed(1), y:+(r.ctr*100).toFixed(2), label:r.keys[0]})),
+              backgroundColor: rows.slice(0,200).map(r=> r.position<=10&&r.ctr<0.02?C('danger',0.7):C('indigo',0.4)),
+              radius:4, hoverRadius:6
+            }]},
+            options:{ responsive:true, maintainAspectRatio:false,
+              plugins:{ tooltip:{ callbacks:{ label:d=>`${d.raw.label}: pos ${d.raw.x} | CTR ${d.raw.y}%` }}, legend:{display:false}},
+              scales:{
+                x:{ title:{display:true,text:'Position',color:'#475569'}, grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{ title:{display:true,text:'CTR %',color:'#475569'}, grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}
+              }
+            }
+          });
+        }
+      }, 50);
+    }
+    else if (t === 2) {
+      const opps = rows.filter(r=>r.impressions>200&&r.position<=10&&r.ctr<0.03).sort((a,b)=>b.impressions-a.impressions).slice(0,25);
+      el.innerHTML = `
+        <div class="grid-2">
+          <div class="card col-2">
+            <div class="card-head"><div class="card-title">Low CTR Opportunities</div><span class="badge badge-warning">High impressions, low CTR — titles need work</span></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Query</th><th>Position</th><th>Impressions</th><th>CTR</th><th>Potential Clicks</th></tr></thead>
+              <tbody>${opps.length ? opps.map(r=>`<tr>
+                <td class="td-primary">${r.keys[0]}</td>
+                <td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td>
+                <td>${F.n(r.impressions)}</td>
+                <td style="color:var(--danger);font-weight:600">${F.pct(r.ctr)}</td>
+                <td style="color:var(--success)">+${F.n(Math.round(r.impressions*0.05-r.clicks))}</td>
+              </tr>`).join('') : `<tr><td colspan="5">${noData('No low-CTR opportunities found in this range.')}</td></tr>`}
+              </tbody></table></div>
+          </div>
+        </div>`;
+    }
+    else if (t === 3) {
+      const devRows = S.gscDevices?.rows || [];
+      el.innerHTML = `
+        <div class="grid-3-equal">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Clicks by Device</div></div>
+            <div class="chart-body" style="height:200px"><canvas id="ch-dev-c"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Impressions by Device</div></div>
+            <div class="chart-body" style="height:200px"><canvas id="ch-dev-i"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Position by Device</div></div>
+            <div class="chart-body" style="height:200px"><canvas id="ch-dev-p"></canvas></div>
+          </div>
+          <div class="card col-2">
+            <div class="card-head"><div class="card-title">Device Performance</div></div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Device</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Avg Position</th></tr></thead>
+              <tbody>${devRows.map(r=>`<tr><td class="td-primary">${r.keys[0]}</td><td>${F.n(r.clicks)}</td><td>${F.n(r.impressions)}</td><td>${F.pct(r.ctr)}</td><td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td></tr>`).join('')}
+              </tbody></table></div>
+          </div>
+        </div>`;
+      const dColors = ['rgba(99,102,241,0.7)','rgba(16,185,129,0.7)','rgba(245,158,11,0.7)'];
+      const dLabels = devRows.map(r=>r.keys[0]);
+      setTimeout(() => {
+        donutChart('ch-dev-c', dLabels, devRows.map(r=>r.clicks), dColors);
+        donutChart('ch-dev-i', dLabels, devRows.map(r=>r.impressions), dColors);
+        donutChart('ch-dev-p', dLabels, devRows.map(r=>r.position.toFixed(1)), dColors);
+      }, 50);
+    }
+  },
+
+  // ── GA4 ────────────────────────────────────────────────
+  _ga4(t, el) {
+    const g = ga4vals();
+    if (t === 0) {
+      el.innerHTML = `
+        <div class="metrics-grid" id="g4-strip"></div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Sessions & Users — Daily</div><span class="badge badge-indigo">${S.dateRange}d</span></div>
+          <div class="chart-body" style="height:280px"><canvas id="ch-g4-ts"></canvas></div>
+        </div>`;
+      const strip = document.getElementById('g4-strip');
+      if (g) {
+        strip.innerHTML =
+          metricCard('Sessions', F.n(g.sessions), `${S.dateRange}d total`, 'indigo', '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', 0) +
+          metricCard('Total Users', F.n(g.totalUsers), 'Unique', 'success', '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', 0.07) +
+          metricCard('New Users', F.n(g.newUsers), 'First-time', 'info', '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>', 0.14) +
+          metricCard('Engagement Rate', F.pct(g.engRate), 'Engaged sessions', 'warning', '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>', 0.21) +
+          metricCard('Avg Session', F.dur(g.avgDur), 'Duration', 'purple', '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 0.28);
+      } else { strip.innerHTML = `<div class="card" style="grid-column:1/-1">${noData('GA4 data not loaded. Check GA4 property in API Config.')}</div>`; }
+      const ts = S.ga4TimeSeries?.rows || [];
+      setTimeout(() => lineChart('ch-g4-ts', ts.map(r=>F.date(r.dimensionValues[0].value)), [
+        { label:'Sessions', data:ts.map(r=>+r.metricValues[0].value), borderColor:C('indigo'), backgroundColor:C('indigo',0.07), fill:true },
+        { label:'Users', data:ts.map(r=>+r.metricValues[1].value), borderColor:C('success',0.7), fill:false }
+      ]), 50);
+    }
+    else if (t === 1) {
+      const chRows = S.ga4Channels?.rows || [];
+      el.innerHTML = `
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Sessions by Channel</div></div>
+            <div class="chart-body" style="height:220px"><canvas id="ch-chan-d"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Channel Bar</div></div>
+            <div class="chart-body" style="height:220px"><canvas id="ch-chan-b"></canvas></div>
+          </div>
+          <div class="card col-2">
+            <div class="card-head"><div class="card-title">Channel Performance</div></div>
+            ${channelTableHTML()}
+          </div>
+        </div>`;
+      const chanColors = [C('indigo',0.75),C('success',0.75),C('warning',0.75),C('info',0.75),C('purple',0.75),C('danger',0.65)];
+      const chanLabels = chRows.map(r=>r.dimensionValues[0].value);
+      const chanSess = chRows.map(r=>+r.metricValues[0].value);
+      setTimeout(() => {
+        donutChart('ch-chan-d', chanLabels, chanSess, chanColors.slice(0,chanLabels.length));
+        barChart('ch-chan-b', chanLabels, [{ label:'Sessions', data:chanSess, backgroundColor:chanColors.slice(0,chanLabels.length) }]);
+      }, 50);
+    }
+    else if (t === 2) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Pages & Content</div>
+            <button class="btn btn-sm btn-success" onclick="exportGA4Pages()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+          </div>
+          ${ga4PageTableHTML()}
+        </div>`;
+    }
+  },
+
+  // ── AEO / GEO ──────────────────────────────────────────
+  _aeo(t, el) {
+    const rows = S.gscRows?.rows || [];
+    if (t === 0) {
+      const aio = detectAIOQueries(rows);
+      const totalImp = rows.reduce((s,r)=>s+r.impressions,0);
+      const aioImp = aio.reduce((s,r)=>s+r.impressions,0);
+      const triggerRate = totalImp ? aioImp/totalImp : 0;
+      el.innerHTML = `
+        <div class="metrics-grid" id="aeo-strip"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div class="card-title">Query Type Breakdown</div></div>
+            <div class="chart-body" style="height:220px"><canvas id="ch-aeo-types"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">AI Overview Signals by Strength</div></div>
+            <div class="chart-body" style="height:220px"><canvas id="ch-aeo-strength"></canvas></div>
+          </div>
+          <div class="card col-2">
+            <div class="card-head"><div class="card-title">Likely AI Overview Queries</div><span class="badge badge-purple">${aio.length} detected</span></div>
+            <div class="table-wrap tall"><table>
+              <thead><tr><th>Query</th><th>Impressions</th><th>Clicks</th><th>Position</th><th>Signal Strength</th></tr></thead>
+              <tbody>${aio.slice(0,60).map(r=>{
+                const q = r.keys[0].toLowerCase();
+                const str = /^(what |how |why )/.test(q)?'Strong':/^(best |is |does )/.test(q)||q.includes('?')?'Moderate':'Possible';
+                const bc = str==='Strong'?'badge-danger':str==='Moderate'?'badge-warning':'badge-muted';
+                return `<tr><td class="td-primary">${r.keys[0]}</td><td>${F.n(r.impressions)}</td><td>${F.n(r.clicks)}</td><td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td><td><span class="badge ${bc}">${str}</span></td></tr>`;
+              }).join('')}
+              </tbody></table></div>
+          </div>
+        </div>`;
+      document.getElementById('aeo-strip').innerHTML =
+        metricCard('AIO Trigger Rate', F.pct(triggerRate), 'Est. AI Overview exposure', 'purple', '<path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12l8-8"/><path d="M20 4v4h-4"/>', 0) +
+        metricCard('AIO Queries', F.n(aio.length), 'Question / how-to / best', 'indigo', '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>', 0.07) +
+        metricCard('AIO Impressions', F.n(aioImp), 'Served in AI context', 'warning', '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>', 0.14) +
+        metricCard('Standard Queries', F.n(rows.length-aio.length), 'Non-AIO patterns', 'success', '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', 0.21) +
+        metricCard('Total Queries', F.n(rows.length), 'All tracked', 'info', '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', 0.28);
+      const intents = classifyIntents(rows);
+      setTimeout(() => {
+        donutChart('ch-aeo-types', intents.map(i=>i.label), intents.map(i=>i.imp),
+          [C('purple',0.7),C('indigo',0.7),C('warning',0.7),C('info',0.7),C('success',0.7),C('danger',0.5)].slice(0,intents.length));
+        const strong = aio.filter(r=>/^(what |how |why )/.test(r.keys[0].toLowerCase())).length;
+        const moderate = aio.filter(r=>/^(best |is |does )/.test(r.keys[0].toLowerCase())||r.keys[0].includes('?')).length;
+        const possible = aio.length - strong - moderate;
+        barChart('ch-aeo-strength', ['Strong','Moderate','Possible'],
+          [{ label:'Queries', data:[strong,moderate,possible], backgroundColor:[C('danger',0.65),C('warning',0.65),C('info',0.4)] }]);
+      }, 50);
+    }
+    else if (t === 1) {
+      el.innerHTML = `
+        <div class="grid-2">
+          <div class="card col-2">
+            <div class="card-head"><div class="card-title">Intent Radar — Impressions & Clicks</div></div>
+            <div class="chart-body" style="height:340px"><canvas id="ch-radar"></canvas></div>
+          </div>
+        </div>`;
+      const intents = classifyIntents(rows);
+      setTimeout(() => radarChart('ch-radar', intents.map(i=>i.label), [
+        { label:'Impressions', data:intents.map(i=>i.imp), backgroundColor:C('indigo',0.12), borderColor:C('indigo'), pointBackgroundColor:C('indigo') },
+        { label:'Clicks', data:intents.map(i=>i.clicks), backgroundColor:C('success',0.12), borderColor:C('success'), pointBackgroundColor:C('success') }
+      ]), 50);
+    }
+    else if (t === 2) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Snippet & AEO Compliance</div><span class="badge badge-indigo">Scored by position + CTR signals</span></div>
+          <div class="table-wrap tall"><table>
+            <thead><tr><th>Query</th><th>Position</th><th>CTR</th><th>AEO Score</th><th>Status</th></tr></thead>
+            <tbody>${rows.slice(0,50).map(r=>{
+              const sc = snippetScore(r);
+              const status = sc>=70?'Optimized':sc>=40?'Needs Work':'Non-Compliant';
+              const bc = sc>=70?'badge-success':sc>=40?'badge-warning':'badge-danger';
+              return `<tr><td class="td-primary">${r.keys[0]}</td><td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td><td>${F.pct(r.ctr)}</td><td style="font-weight:600;font-family:var(--font-data)">${sc}</td><td><span class="badge ${bc}">${status}</span></td></tr>`;
+            }).join('')}
+            </tbody></table></div>
+        </div>`;
+    }
+    else if (t === 3) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">GEO Signals</div><span class="badge badge-purple">Generative Engine Optimization</span></div>
+          <div class="card-body">
+            <div class="intent-grid">
+              ${[
+                {l:'Long-tail queries (5+ words)', v: rows.filter(r=>r.keys[0].split(' ').length>=5).length, c:'indigo'},
+                {l:'Question queries (who/what/how)', v: rows.filter(r=>/^(what|how|why|who|when|which)\b/i.test(r.keys[0])).length, c:'purple'},
+                {l:'High impression, low position', v: rows.filter(r=>r.impressions>500&&r.position>10).length, c:'warning'},
+                {l:'Zero-click risk (pos ≤3, ctr<1%)', v: rows.filter(r=>r.position<=3&&r.ctr<0.01).length, c:'danger'},
+              ].map(i=>`<div class="intent-item"><div class="intent-label">${i.l}</div><div class="intent-value" style="color:var(--${i.c})">${F.n(i.v)}</div><div class="intent-sub">queries</div></div>`).join('')}
+            </div>
+            <div style="margin-top:20px">
+              <div style="font-size:12px;color:var(--text-2);line-height:1.9">
+                <strong style="color:var(--text)">GEO Checklist</strong><br>
+                ${[
+                  ['Structured data coverage','Deploy FAQ, HowTo, and Article schema on pages targeting AIO queries.'],
+                  ['Entity co-occurrence','Mention related entities in-page to strengthen Knowledge Graph signals.'],
+                  ['Direct answer formatting','Lead with a concise answer (40–60 words) before expanding — matches AI Overview extraction patterns.'],
+                  ['Citation-worthy sources','Link to primary research, government data, and authoritative statistics.'],
+                  ['Conversational keyword variants','Include natural-language phrasing in H2s and FAQ sections.']
+                ].map(([k,v])=>`<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="color:var(--indigo-light);font-weight:600">${k}:</span> ${v}</div>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+  },
+
+  // ── OPPORTUNITIES ───────────────────────────────────────
+  _opportunities(t, el) {
+    const rows = S.gscRows?.rows || [];
+    if (t === 0) {
+      const opps = detectOpportunities(rows);
+      document.getElementById('nav-opp-count').textContent = opps.length;
+      document.getElementById('nav-opp-count').style.display = opps.length ? '' : 'none';
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Quick Win Opportunities</div><span class="badge badge-warning">${opps.length} found — pos 4–20, high impressions, low CTR</span></div>
+          <div class="table-wrap tall"><table>
+            <thead><tr><th>Query</th><th>Position</th><th>Impressions</th><th>CTR</th><th>Opp Score</th><th>Potential</th></tr></thead>
+            <tbody>${opps.length ? opps.slice(0,50).map((r,i)=>{
+              const maxS = opps[0].score;
+              const barW = Math.round(r.score/maxS*100);
+              return `<tr>
+                <td class="td-primary">${r.keys[0]}</td>
+                <td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td>
+                <td>${F.n(r.impressions)}</td>
+                <td style="color:var(--warning)">${F.pct(r.ctr)}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="opp-score-bar"><div class="opp-score-fill" style="width:${barW}%;background:var(--warning)"></div></div>
+                    <span style="font-weight:600;color:var(--text);font-size:11px">${r.score}</span>
+                  </div>
+                </td>
+                <td style="color:var(--success)">+${F.n(Math.round(r.impressions*0.05-r.clicks))} clicks</td>
+              </tr>`;
+            }).join('') : `<tr><td colspan="6">${noData('No quick-win opportunities found. Try expanding the date range.')}</td></tr>`}
+            </tbody></table></div>
+        </div>`;
+    }
+    else if (t === 1) {
+      const targets = rows.filter(r=>r.position>=4&&r.position<=20&&r.impressions>=200&&
+        /^(what|how|why|best|top|list)\b/i.test(r.keys[0])).sort((a,b)=>a.position-b.position).slice(0,40);
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Featured Snippet Targets</div><span class="badge badge-purple">Question / list / how-to queries in pos 4–20</span></div>
+          <div class="table-wrap tall"><table>
+            <thead><tr><th>Query</th><th>Position</th><th>Impressions</th><th>CTR</th><th>Type</th><th>Recommendation</th></tr></thead>
+            <tbody>${targets.length ? targets.map(r=>{
+              const q = r.keys[0].toLowerCase();
+              const type = /^how/.test(q)?'How-to':/^(what|why|who|when)/.test(q)?'Definition':/^(best|top|list)/.test(q)?'List':'Question';
+              const rec = {
+                'How-to':'Add numbered steps, structured with HowTo schema.',
+                'Definition':'Add a 40–60 word direct answer in the first paragraph.',
+                'List':'Format as a bulleted or numbered HTML list.',
+                'Question':'Answer in the first sentence; expand below.'
+              }[type];
+              return `<tr>
+                <td class="td-primary">${r.keys[0]}</td>
+                <td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td>
+                <td>${F.n(r.impressions)}</td>
+                <td>${F.pct(r.ctr)}</td>
+                <td><span class="badge badge-purple">${type}</span></td>
+                <td style="font-size:11px;color:var(--text-2);max-width:260px">${rec}</td>
+              </tr>`;
+            }).join('') : `<tr><td colspan="6">${noData()}</td></tr>`}
+            </tbody></table></div>
+        </div>`;
+    }
+    else if (t === 2) {
+      const gaps = rows.filter(r=>r.position>20&&r.impressions>100).sort((a,b)=>b.impressions-a.impressions).slice(0,50);
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Ranking Gaps</div><span class="badge badge-danger">Position 20+ with significant impressions</span></div>
+          <div class="table-wrap tall"><table>
+            <thead><tr><th>Query</th><th>Position</th><th>Impressions</th><th>Clicks</th><th>CTR</th><th>Priority</th></tr></thead>
+            <tbody>${gaps.length ? gaps.map(r=>{
+              const pri = r.impressions>1000?'High':r.impressions>400?'Medium':'Low';
+              const bc = pri==='High'?'badge-danger':pri==='Medium'?'badge-warning':'badge-muted';
+              return `<tr><td class="td-primary">${r.keys[0]}</td><td class="pos-11p td-mono">${F.pos(r.position)}</td><td>${F.n(r.impressions)}</td><td>${F.n(r.clicks)}</td><td>${F.pct(r.ctr)}</td><td><span class="badge ${bc}">${pri}</span></td></tr>`;
+            }).join('') : `<tr><td colspan="6">${noData()}</td></tr>`}
+            </tbody></table></div>
+        </div>`;
+    }
+  },
+
+  // ── CANNIBALIZATION ─────────────────────────────────────
+  _cannibalization(t, el) {
+    const rows = S.gscRows?.rows || [];
+    const conflicts = detectCannibalization(rows);
+    if (t === 0) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Query Conflicts</div>
+            <div class="card-actions">
+              <span class="badge ${conflicts.length>0?'badge-danger':'badge-success'}">${conflicts.length} conflicts detected</span>
+            </div>
+          </div>
+          <div class="table-wrap tall"><table>
+            <thead><tr><th>Query Stem</th><th>Variant A</th><th>Pos A</th><th>Variant B</th><th>Pos B</th><th>Gap</th><th>Risk</th></tr></thead>
+            <tbody>${conflicts.length ? conflicts.map(c=>`
+              <tr class="cannibal-row">
+                <td class="td-primary">${c.stem}</td>
+                <td style="font-size:11px;color:var(--text-2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.query}</td>
+                <td class="${posClass(c.pos1)} td-mono">${F.pos(c.pos1)}</td>
+                <td style="font-size:11px;color:var(--text-2)">variant</td>
+                <td class="${posClass(c.pos2)} td-mono">${F.pos(c.pos2)}</td>
+                <td class="td-mono">${c.delta.toFixed(1)}</td>
+                <td><span class="badge ${c.delta<5?'badge-danger':c.delta<10?'badge-warning':'badge-muted'}">${c.delta<5?'High':c.delta<10?'Med':'Low'}</span></td>
+              </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;padding:32px"><div style="color:var(--success);font-weight:600">✓ No cannibalization conflicts detected</div><div style="font-size:11px;color:var(--text-3);margin-top:4px">Your query coverage looks clean for this period.</div></td></tr>`}
+            </tbody></table></div>
+        </div>`;
+    }
+    else {
+      el.innerHTML = `<div class="card">${noData('Full page-level conflict mapping requires query×page data. Use the GSC Query Explorer → Pages drill-down for per-query page conflicts.')}</div>`;
+    }
+  },
+
+  // ── CONFIG ──────────────────────────────────────────────
+  _config(t, el) {
+    if (t === 0) {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">API Credentials</div><span class="badge badge-muted">Stored locally in browser — never sent to a server</span></div>
+          <div class="card-body">
+            <div class="config-grid">
+              <div class="form-row">
+                <label class="input-label">Google OAuth 2.0 Client ID</label>
+                <input class="input" id="cfg-cid" placeholder="xxxxxxxxxx.apps.googleusercontent.com" value="${localStorage.getItem('si_client_id')||''}">
+                <div class="input-hint">Create at console.cloud.google.com → APIs & Services → Credentials → OAuth 2.0 Client IDs. Set type to Web Application and add <code>${location.origin}</code> to Authorized JavaScript Origins.</div>
+              </div>
+              <div class="form-row">
+                <label class="input-label">GSC Property URL</label>
+                <input class="input" id="cfg-site" placeholder="https://example.com/" value="${localStorage.getItem('si_site')||''}">
+                <div class="input-hint">Must exactly match the property in Google Search Console — including trailing slash. Supports both URL-prefix and domain properties.</div>
+              </div>
+              <div class="form-row">
+                <label class="input-label">GA4 Property ID</label>
+                <input class="input" id="cfg-ga4" placeholder="properties/123456789" value="${localStorage.getItem('si_ga4')||''}">
+                <div class="input-hint">Format: <code>properties/XXXXXXXXX</code>. Find it in GA4 → Admin → Property Settings → Property ID.</div>
+              </div>
+              <div class="form-row">
+                <label class="input-label">Default Date Range</label>
+                <select class="input" id="cfg-dr">
+                  ${[7,28,90,180].map(d=>`<option value="${d}"${S.dateRange==d?' selected':''}>${d} days</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <button class="btn btn-indigo" id="btn-save-cfg">
+                <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save credentials
+              </button>
+              <button class="btn" id="btn-test">
+                <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Test connection
+              </button>
+            </div>
+            <div class="config-info-box">
+              <strong>This origin:</strong> <code>${location.origin}</code> — add this to Authorized JavaScript Origins in Google Cloud Console.<br>
+              <strong>Required APIs:</strong> Google Search Console API · Google Analytics Data API v1beta<br>
+              <strong>Required scopes:</strong> <code>webmasters.readonly</code> · <code>analytics.readonly</code>
+            </div>
+          </div>
+        </div>`;
+      document.getElementById('btn-save-cfg').onclick = () => {
+        const cid = document.getElementById('cfg-cid').value.trim();
+        const site = document.getElementById('cfg-site').value.trim();
+        const ga4 = document.getElementById('cfg-ga4').value.trim();
+        const dr = +document.getElementById('cfg-dr').value;
+        if (cid) { localStorage.setItem('si_client_id', cid); CONFIG.CLIENT_ID = cid; }
+        if (site) { localStorage.setItem('si_site', site); CONFIG.GSC_SITE = site; document.getElementById('sb-domain').textContent = site; }
+        if (ga4) { localStorage.setItem('si_ga4', ga4); CONFIG.GA4_PROPERTY = ga4; }
+        S.dateRange = dr;
+        Toast.show('success', 'Saved', 'Credentials stored in your browser.');
+        Log.add('ok', 'CFG', `Saved: site=${site||'–'}, ga4=${ga4||'–'}`);
+      };
+      document.getElementById('btn-test').onclick = async () => {
+        if (!Auth.ok()) { Toast.show('warning', 'Not connected', 'Authenticate first.'); return; }
+        try { await App.fetchAll(); } catch(e) { Toast.show('danger', 'Test failed', e.message); }
+      };
+    }
+    else {
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head"><div class="card-title">Setup Guide</div></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:16px;max-width:560px">
+              ${[
+                ['1', 'Enable APIs', 'Go to console.cloud.google.com, select or create a project, then enable Google Search Console API and Google Analytics Data API.'],
+                ['2', 'Create OAuth credentials', 'APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID. Set Application type to Web Application. Add your current origin under Authorized JavaScript Origins.'],
+                ['3', 'Configure this dashboard', 'Paste your Client ID, GSC property URL, and GA4 property ID into the Credentials tab. Hit Save.'],
+                ['4', 'Authenticate', 'Click Connect Google in the top bar. Complete the OAuth consent flow — you will see a browser popup.'],
+                ['5', 'Data loads automatically', 'On successful auth, all GSC and GA4 data fetches in parallel. Use the date range selector to change the window.']
+              ].map(([n,t,d])=>`
+                <div style="display:flex;gap:14px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--indigo-dim);border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--indigo-light);flex-shrink:0;margin-top:2px">${n}</div>
+                  <div><div style="font-size:13px;font-weight:600;margin-bottom:3px">${t}</div><div style="font-size:12px;color:var(--text-2);line-height:1.7">${d}</div></div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+  },
+
+  // ── DRILLDOWN ────────────────────────────────────────────
+  async drilldown(query) {
+    if (!Auth.ok()) return;
+    S.drilldownQuery = query;
+    document.getElementById('drilldown-bar').classList.add('visible');
+    document.getElementById('drilldown-label').textContent = query;
+    const el = document.getElementById('content');
+    el.innerHTML = `<div class="card"><div class="card-head"><div class="card-title">Pages ranking for "${query}"</div></div>${loading('Fetching page breakdown…')}</div>`;
+    try {
+      const data = await API.fetchGSCDrilldown(query);
+      const rows = data.rows || [];
+      el.innerHTML = `
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">Pages ranking for <span style="color:var(--indigo-light)">"${query}"</span></div>
+            <div class="card-actions">
+              <span class="badge badge-indigo">${rows.length} pages</span>
+              <button class="btn btn-sm" onclick="App.clearDrilldown()">← Back</button>
+            </div>
+          </div>
+          <div class="table-wrap tall"><table>
+            <thead><tr><th>Page</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Avg Position</th></tr></thead>
+            <tbody>${rows.length ? rows.map(r=>`<tr><td class="td-url" title="${r.keys[0]}">${r.keys[0]}</td><td>${F.n(r.clicks)}</td><td>${F.n(r.impressions)}</td><td>${F.pct(r.ctr)}</td><td class="${posClass(r.position)} td-mono">${F.pos(r.position)}</td></tr>`).join('') : `<tr><td colspan="5">${noData('No page data for this query.')}</td></tr>`}
+            </tbody></table></div>
+        </div>`;
+      Log.add('ok', 'GSC', `Drilldown: "${query}" → ${rows.length} pages`);
+    } catch(e) {
+      el.innerHTML = `<div class="card">${noData(`Error: ${e.message}`)}</div>`;
+      Log.add('err', 'GSC', e.message);
+    }
+  },
+  clearDrilldown() {
+    S.drilldownQuery = null;
+    document.getElementById('drilldown-bar').classList.remove('visible');
+    this._render();
+  },
+
+  // ── HELPERS ──────────────────────────────────────────────
+  _filteredRows() {
+    const rows = S.gscRows?.rows || [];
+    if (!S.filterText) return rows;
+    return rows.filter(r => r.keys[0].toLowerCase().includes(S.filterText.toLowerCase()));
+  },
+
+  // ── FETCH ALL ─────────────────────────────────────────────
+  async fetchAll() {
+    if (!Auth.ok()) return;
+    document.getElementById('pill-text').textContent = 'Syncing…';
+    Log.add('info', 'SYNC', `Fetching ${S.dateRange}d window`);
+    const settled = await Promise.allSettled([
+      API.fetchGSCQueries(), API.fetchGSCPages(), API.fetchGSCTimeSeries(), API.fetchGSCDevices()
+    ]);
+    if (settled[0].status==='fulfilled') { S.gscRows = settled[0].value; Log.add('ok','GSC',`${S.gscRows.rows?.length||0} queries`); }
+    else Log.add('err','GSC',settled[0].reason?.message);
+    if (settled[1].status==='fulfilled') S.gscPages = settled[1].value;
+    if (settled[2].status==='fulfilled') S.gscTimeSeries = settled[2].value;
+    if (settled[3].status==='fulfilled') S.gscDevices = settled[3].value;
+
+    const hasProp = CONFIG.GA4_PROPERTY || localStorage.getItem('si_ga4');
+    if (hasProp) {
+      const g = await Promise.allSettled([
+        API.fetchGA4Overview(), API.fetchGA4Channels(), API.fetchGA4Pages(), API.fetchGA4TimeSeries()
+      ]);
+      if (g[0].status==='fulfilled') { S.ga4Overview = g[0].value; Log.add('ok','GA4','Overview loaded'); }
+      else Log.add('warn','GA4',g[0].reason?.message||'Failed');
+      if (g[1].status==='fulfilled') S.ga4Channels = g[1].value;
+      if (g[2].status==='fulfilled') S.ga4Pages = g[2].value;
+      if (g[3].status==='fulfilled') S.ga4TimeSeries = g[3].value;
+    } else {
+      Log.add('warn','GA4','No property configured — skipping');
+    }
+
+    S.lastSync = new Date();
+    document.getElementById('sb-sync').textContent = `Synced ${S.lastSync.toLocaleTimeString()}`;
+    document.getElementById('sb-queries').textContent = `${S.gscRows?.rows?.length||0} queries`;
+    document.getElementById('pill-text').textContent = 'Live';
+    const opp = detectOpportunities(S.gscRows?.rows||[]);
+    const badge = document.getElementById('nav-opp-count');
+    badge.textContent = opp.length; badge.style.display = opp.length ? '' : 'none';
+    Toast.show('success', 'Synced', `${S.gscRows?.rows?.length||0} queries · ${S.gscPages?.rows?.length||0} pages`);
+    this._render();
+  }
+};
+
+// export helper available globally for onclick handlers
+function exportGA4Pages() {
+  const rows = S.ga4Pages?.rows || [];
+  const csv = ['Path,Page Views,Users,Avg Duration,Bounce Rate',
+    ...rows.map(r=>`"${r.dimensionValues[0].value}",${r.metricValues[0].value},${r.metricValues[1].value},${r.metricValues[2].value},${r.metricValues[3].value}`)
+  ].join('\n');
+  const a = Object.assign(document.createElement('a'), { href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})), download:'ga4-pages.csv' });
+  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  Toast.show('success','Exported',`${rows.length} pages saved.`);
+}
+
+// ─── CONTROLS ──────────────────────────────────────────────
+document.getElementById('date-range').onchange = e => {
+  S.dateRange = +e.target.value;
+  if (Auth.ok()) App.fetchAll();
+};
+document.getElementById('btn-refresh').onclick = () => {
+  if (Auth.ok()) App.fetchAll();
+  else Toast.show('warning','Not connected','Authenticate first.');
+};
+
+// ─── INIT ──────────────────────────────────────────────────
+function init() {
+  ['si_client_id','si_site','si_ga4'].forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v) {
+      if (k==='si_client_id') CONFIG.CLIENT_ID = v;
+      if (k==='si_site') { CONFIG.GSC_SITE = v; document.getElementById('sb-domain').textContent = v; }
+      if (k==='si_ga4') CONFIG.GA4_PROPERTY = v;
+    }
+  });
+  if (!localStorage.getItem('si_client_id')) {
+    document.getElementById('auth-overlay').style.display = 'flex';
+  } else {
+    document.getElementById('auth-overlay').style.display = 'none';
+  }
+  Log.add('info','SYS','Search Intel OS v3.2 initialized');
+  Log.add('info','SYS',`APIs: GSC v3 · GA4 Data API v1beta`);
+  if (!localStorage.getItem('si_client_id')) Log.add('warn','SYS','No Client ID — configure in API Config');
+  App.go('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>
