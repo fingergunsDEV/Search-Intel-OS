@@ -1412,17 +1412,25 @@ const App = {
     S.view = view; S.tab = 0; this.clearDrilldown();
     this._renderTabs(); this._render();
   },
-  _renderTabs() {
-    const tabs = VIEWS[S.view]?.tabs || [];
-    const bar = document.getElementById('tab-bar');
-    bar.innerHTML = tabs.map((t,i) => `<button class="tab${i===S.tab?' active':''}" data-i="${i}">${t}</button>`).join('');
-    bar.querySelectorAll('.tab').forEach(b => b.onclick = () => {
-      S.tab = +b.dataset.i; S.filterText = '';
+  // Inside App object — replace _renderTabs entirely
+_renderTabs() {
+  const tabs = VIEWS[S.view]?.tabs || [];
+  const bar = document.getElementById('tab-bar');
+  bar.innerHTML = tabs.map((t, i) =>
+    `<button class="tab${i === S.tab ? ' active' : ''}" data-i="${i}">${t}</button>`
+  ).join('');
+
+  // Use direct DOM query after render — no 'this' dependency
+  bar.querySelectorAll('.tab').forEach(b => {
+    b.addEventListener('click', () => {
+      S.tab = +b.dataset.i;
+      S.filterText = '';
       bar.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
-      this._render();
+      App._render();  // explicit reference, no 'this'
     });
-  },
+  });
+},
   _render() {
     Object.keys(S.charts).forEach(id => { if (!document.getElementById(id)) { S.charts[id]?.destroy(); delete S.charts[id]; } });
     const el = document.getElementById('content');
