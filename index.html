@@ -2150,37 +2150,50 @@ document.getElementById('btn-refresh').onclick = () => {
 // ─── INIT ──────────────────────────────────────────────────
 // ─── INIT ──────────────────────────────────────────────────
 function init() {
+  // Load saved config
   ['si_client_id','si_site','si_ga4'].forEach(k => {
     const v = localStorage.getItem(k);
     if (v) {
-      if (k==='si_client_id') CONFIG.CLIENT_ID = v;
-      if (k==='si_site') { CONFIG.GSC_SITE = v; document.getElementById('sb-domain').textContent = v; }
-      if (k==='si_ga4') CONFIG.GA4_PROPERTY = v;
+      if (k === 'si_client_id') CONFIG.CLIENT_ID = v;
+      if (k === 'si_site') { CONFIG.GSC_SITE = v; document.getElementById('sb-domain').textContent = v; }
+      if (k === 'si_ga4') CONFIG.GA4_PROPERTY = v;
     }
   });
+  // Wire nav AFTER App is defined
+  document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      App.go(btn.dataset.view);
+    });
+  });
+
+  document.getElementById('auth-overlay').style.display = 'none';
 
   const hasCredentials = !!(localStorage.getItem('si_client_id') && localStorage.getItem('si_site'));
 
-  // Hide auth overlay entirely on load — user configures first, then manually connects
-  document.getElementById('auth-overlay').style.display = 'none';
-
-  Log.add('info','SYS','Search Intel OS v3.2 initialized');
-  Log.add('info','SYS','APIs: GSC v3 · GA4 Data API v1beta');
-
   if (!hasCredentials) {
-    // Drop them straight into Config so they can enter credentials first
-    Log.add('warn','SYS','No credentials found — opening API Config');
+    Log.add('warn', 'SYS', 'No credentials — opening API Config');
+
+    // Manually set active nav item to config
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelector('.nav-item[data-view="config"]').classList.add('active');
+
     App.go('config');
-    // Highlight the connect button as disabled until saved
+
     const authBtn = document.getElementById('btn-auth');
     authBtn.disabled = true;
     authBtn.title = 'Save your Client ID and site first';
     authBtn.style.opacity = '0.4';
     authBtn.style.cursor = 'not-allowed';
-    Toast.show('info', 'Welcome', 'Enter your Client ID and GSC site, then click Save before connecting.');
+
+    Toast.show('info', 'Welcome', 'Enter your Client ID and GSC site URL, then Save before connecting.');
   } else {
     App.go('dashboard');
   }
+
+  Log.add('info', 'SYS', 'Search Intel OS v3.2 initialized');
+  Log.add('info', 'SYS', 'APIs: GSC v3 · GA4 Data API v1beta');
 }
 
 init();
