@@ -1978,18 +1978,34 @@ const App = {
             </div>
           </div>
         </div>`;
-      document.getElementById('btn-save-cfg').onclick = () => {
-        const cid = document.getElementById('cfg-cid').value.trim();
-        const site = document.getElementById('cfg-site').value.trim();
-        const ga4 = document.getElementById('cfg-ga4').value.trim();
-        const dr = +document.getElementById('cfg-dr').value;
-        if (cid) { localStorage.setItem('si_client_id', cid); CONFIG.CLIENT_ID = cid; }
-        if (site) { localStorage.setItem('si_site', site); CONFIG.GSC_SITE = site; document.getElementById('sb-domain').textContent = site; }
-        if (ga4) { localStorage.setItem('si_ga4', ga4); CONFIG.GA4_PROPERTY = ga4; }
-        S.dateRange = dr;
-        Toast.show('success', 'Saved', 'Credentials stored in your browser.');
-        Log.add('ok', 'CFG', `Saved: site=${site||'–'}, ga4=${ga4||'–'}`);
-      };
+     document.getElementById('btn-save-cfg').onclick = () => {
+  const cid = document.getElementById('cfg-cid').value.trim();
+  const site = document.getElementById('cfg-site').value.trim();
+  const ga4 = document.getElementById('cfg-ga4').value.trim();
+  const dr = +document.getElementById('cfg-dr').value;
+
+  if (!cid || !site) {
+    Toast.show('warning', 'Missing fields', 'Client ID and GSC Site URL are required.');
+    return;
+  }
+
+  localStorage.setItem('si_client_id', cid); CONFIG.CLIENT_ID = cid;
+  localStorage.setItem('si_site', site);      CONFIG.GSC_SITE = site;
+  if (ga4) { localStorage.setItem('si_ga4', ga4); CONFIG.GA4_PROPERTY = ga4; }
+  S.dateRange = dr;
+
+  document.getElementById('sb-domain').textContent = site;
+
+  // Unlock the Connect button
+  const authBtn = document.getElementById('btn-auth');
+  authBtn.disabled = false;
+  authBtn.style.opacity = '';
+  authBtn.style.cursor = '';
+  authBtn.title = '';
+
+  Toast.show('success', 'Saved', 'Credentials saved. Click Connect Google to authenticate.');
+  Log.add('ok', 'CFG', `Saved: site=${site}, ga4=${ga4||'–'}`);
+};
       document.getElementById('btn-test').onclick = async () => {
         if (!Auth.ok()) { Toast.show('warning', 'Not connected', 'Authenticate first.'); return; }
         try { await App.fetchAll(); } catch(e) { Toast.show('danger', 'Test failed', e.message); }
@@ -2124,6 +2140,7 @@ document.getElementById('btn-refresh').onclick = () => {
 };
 
 // ─── INIT ──────────────────────────────────────────────────
+// ─── INIT ──────────────────────────────────────────────────
 function init() {
   ['si_client_id','si_site','si_ga4'].forEach(k => {
     const v = localStorage.getItem(k);
@@ -2133,15 +2150,29 @@ function init() {
       if (k==='si_ga4') CONFIG.GA4_PROPERTY = v;
     }
   });
-  if (!localStorage.getItem('si_client_id')) {
-    document.getElementById('auth-overlay').style.display = 'flex';
-  } else {
-    document.getElementById('auth-overlay').style.display = 'none';
-  }
+
+  const hasCredentials = !!(localStorage.getItem('si_client_id') && localStorage.getItem('si_site'));
+
+  // Hide auth overlay entirely on load — user configures first, then manually connects
+  document.getElementById('auth-overlay').style.display = 'none';
+
   Log.add('info','SYS','Search Intel OS v3.2 initialized');
-  Log.add('info','SYS',`APIs: GSC v3 · GA4 Data API v1beta`);
-  if (!localStorage.getItem('si_client_id')) Log.add('warn','SYS','No Client ID — configure in API Config');
-  App.go('dashboard');
+  Log.add('info','SYS','APIs: GSC v3 · GA4 Data API v1beta');
+
+  if (!hasCredentials) {
+    // Drop them straight into Config so they can enter credentials first
+    Log.add('warn','SYS','No credentials found — opening API Config');
+    App.go('config');
+    // Highlight the connect button as disabled until saved
+    const authBtn = document.getElementById('btn-auth');
+    authBtn.disabled = true;
+    authBtn.title = 'Save your Client ID and site first';
+    authBtn.style.opacity = '0.4';
+    authBtn.style.cursor = 'not-allowed';
+    Toast.show('info', 'Welcome', 'Enter your Client ID and GSC site, then click Save before connecting.');
+  } else {
+    App.go('dashboard');
+  }
 }
 
 init();
