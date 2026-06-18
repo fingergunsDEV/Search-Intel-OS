@@ -2124,25 +2124,34 @@ document.getElementById('btn-refresh').onclick = () => {
 };
 
 // ─── INIT ──────────────────────────────────────────────────
-function init() {
-  ['si_client_id','si_site','si_ga4'].forEach(k => {
-    const v = localStorage.getItem(k);
-    if (v) {
-      if (k==='si_client_id') CONFIG.CLIENT_ID = v;
-      if (k==='si_site') { CONFIG.GSC_SITE = v; document.getElementById('sb-domain').textContent = v; }
-      if (k==='si_ga4') CONFIG.GA4_PROPERTY = v;
+// ─── INIT ──────────────────────────────────────────────────
+     function init() {
+      ['si_client_id','si_site','si_ga4'].forEach(k => {
+        const v = localStorage.getItem(k);
+         if (v) {
+           if (k==='si_client_id') CONFIG.CLIENT_ID = v;
+          if (k==='si_site') { CONFIG.GSC_SITE = v; document.getElementById('sb-domain').textContent = v; }
+           if (k==='si_ga4') CONFIG.GA4_PROPERTY = v;
+       }
+      });
+   
+      // Check if GIS is available
+      if (typeof google !== 'undefined' && google.accounts) {
+        gisLibraryReady = true;
+     }
+   
+     if (!localStorage.getItem('si_client_id')) {
+       document.getElementById('auth-overlay').style.display = 'flex';
+     } else {
+       document.getElementById('auth-overlay').style.display = 'none';
+     }
+     Log.add('info','SYS','Search Intel OS v3.2 initialized');
+     Log.add('info','SYS',`APIs: GSC v3 · GA4 Data API v1beta`);
+     if (!localStorage.getItem('si_client_id')) Log.add('warn','SYS','No Client ID — configure in API Config');
+     App.go('dashboard');
     }
-  });
-  if (!localStorage.getItem('si_client_id')) {
-    document.getElementById('auth-overlay').style.display = 'flex';
-  } else {
-    document.getElementById('auth-overlay').style.display = 'none';
-  }
-  Log.add('info','SYS','Search Intel OS v3.2 initialized');
-  Log.add('info','SYS',`APIs: GSC v3 · GA4 Data API v1beta`);
-  if (!localStorage.getItem('si_client_id')) Log.add('warn','SYS','No Client ID — configure in API Config');
-  App.go('dashboard');
-}
+   
+   init();
 
 init();
 </script>
