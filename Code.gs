@@ -4,7 +4,7 @@
 var MASTER_PASSWORD = PropertiesService.getScriptProperties().getProperty('MASTER_PASSWORD') || 'admin123';
 // ─── CONFIG ──────────────────────────────────────────────
 var CONFIG = {
-  VERSION: '9.0',
+  VERSION: '8.0',
   DEFAULT_DAYS: 28,
   MAX_CACHE_TTL: 3600,
   SHEET_ID: PropertiesService.getScriptProperties().getProperty('SHEET_ID') || '',
@@ -134,18 +134,19 @@ function forceAuthorize() {
   }
 }
 function getAIAuditSummary() {
-  var result = {
-    readinessScore: 0,
-    aeoScore: 0,
-    schemaCoverage: 0,
-    definitionCoverage: 0,
-    zeroClickRisk: 0,
-    topPagesMissingDefinitions: [],
-    schemaAudit: [],
-    crawlerStatus: {}
-  };
-
+  console.log('[AEO] Starting getAIAuditSummary');
   try {
+    var result = {
+      readinessScore: 0,
+      aeoScore: 0,
+      schemaCoverage: 0,
+      definitionCoverage: 0,
+      zeroClickRisk: 0,
+      topPagesMissingDefinitions: [],
+      schemaAudit: [],
+      crawlerStatus: {}
+    };
+
     // 1. AEO Score from GSC
     var gscData = fetchGSCQueriesCached();
     var rows = gscData && gscData.rows ? gscData.rows : [];
@@ -161,10 +162,8 @@ function getAIAuditSummary() {
     // 3. Top pages missing definitions (limit to 10 for performance)
     var topPages = rows.sort(function(a, b) { return b.impressions - a.impressions; }).slice(0, 20);
     var pagesWithDefs = [];
-    var countChecked = 0;
     topPages.forEach(function(page) {
       var url = page.keys[0];
-      // Skip if URL is too long or invalid
       if (!url || url.length > 200) return;
       try {
         var check = checkDefinitionBlock(url);
@@ -174,7 +173,6 @@ function getAIAuditSummary() {
           hasDefinition: check.hasDefinitionBlock || false,
           wordCount: check.wordCount || 0
         });
-        countChecked++;
       } catch(e) {
         // skip this page
       }
@@ -225,19 +223,19 @@ function getAIAuditSummary() {
       (result.schemaCoverage * 0.25) +
       (100 - result.zeroClickRisk * 0.2)
     );
+
+    result.readinessScore = result.readinessScore || 0;
+    result.aeoScore = result.aeoScore || 0;
+    result.schemaCoverage = result.schemaCoverage || 0;
+    result.definitionCoverage = result.definitionCoverage || 0;
+    result.zeroClickRisk = result.zeroClickRisk || 0;
+
+    console.log('[AEO] getAIAuditSummary complete');
+    return result;
   } catch(e) {
-    console.error('getAIAuditSummary error:', e);
-    // Return whatever we have with safe defaults
+    console.error('[AEO] getAIAuditSummary error:', e);
+    return { error: true, message: e.message };
   }
-
-  // Ensure all numbers are integers
-  result.readinessScore = result.readinessScore || 0;
-  result.aeoScore = result.aeoScore || 0;
-  result.schemaCoverage = result.schemaCoverage || 0;
-  result.definitionCoverage = result.definitionCoverage || 0;
-  result.zeroClickRisk = result.zeroClickRisk || 0;
-
-  return result;
 }
 // ─── CREDENTIALS ─────────────────────────────────────────
 function getCredentials() {
@@ -1449,31 +1447,38 @@ function auditAICitations(brand, industry, prompts) {
 
 // 8. LLM Crawler Monitor
 function monitorLLMCrawlers() {
-  var site = getProp('GSC_SITE');
-  if (!site) return { error: 'GSC_SITE not configured' };
-  var crawlers = ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'ChatGPT-User'];
-  var results = {};
-  crawlers.forEach(function(crawler) {
-    try {
-      var dates = getDateRange();
-      var response = callGSCAPI('sites/' + encodeURIComponent(site) + '/searchAnalytics/query', {
-        startDate: dates.startDate,
-        endDate: dates.endDate,
-        dimensions: ['query'],
-        dimensionFilterGroups: [{ filters: [{ dimension: 'query', operator: 'contains', expression: crawler }] }],
-        rowLimit: 1
-      });
-      var found = response.rows && response.rows.length > 0;
-      results[crawler] = {
-        detected: found,
-        lastSeen: found ? dates.endDate : null,
-        hits: found ? response.rows[0].clicks || 0 : 0
-      };
-    } catch(e) {
-      results[crawler] = { error: e.message };
-    }
-  });
-  return results;
+  console.log('[AEO] Starting monitorLLMCrawlers');
+  try {
+    var site = getProp('GSC_SITE');
+    if (!site) return { error: 'GSC_SITE not configured' };
+    var crawlers = ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended', 'ChatGPT-User'];
+    var results = {};
+    crawlers.forEach(function(crawler) {
+      try {
+        var dates = getDateRange();
+        var response = callGSCAPI('sites/' + encodeURIComponent(site) + '/searchAnalytics/query', {
+          startDate: dates.startDate,
+          endDate: dates.endDate,
+          dimensions: ['query'],
+          dimensionFilterGroups: [{ filters: [{ dimension: 'query', operator: 'contains', expression: crawler }] }],
+          rowLimit: 1
+        });
+        var found = response.rows && response.rows.length > 0;
+        results[crawler] = {
+          detected: found,
+          lastSeen: found ? dates.endDate : null,
+          hits: found ? response.rows[0].clicks || 0 : 0
+        };
+      } catch(e) {
+        results[crawler] = { error: e.message };
+      }
+    });
+    console.log('[AEO] monitorLLMCrawlers complete');
+    return results;
+  } catch(e) {
+    console.error('[AEO] monitorLLMCrawlers error:', e);
+    return { error: true, message: e.message };
+  }
 }
 
 // 9. Entity Extraction
@@ -2811,218 +2816,227 @@ function auditLinkProfile() {
 
 // 1. AI Overview Analysis
 function analyzeAIOverviews() {
-  var gscData = fetchGSCQueriesCached();
-  if (!gscData || !gscData.rows) {
-    return { error: 'No GSC data available' };
-  }
-  
-  var rows = gscData.rows;
-  var aioCandidates = [];
-  
-  rows.forEach(function(row) {
-    var query = row.keys[0].toLowerCase();
-    var isQuestion = /^(what|how|why|who|when|which|where|can|does|is|are)\b/.test(query) || query.indexOf('?') !== -1;
-    var isList = /\b(best|top|vs|compare|list)\b/.test(query);
-    var isHowTo = /^how to/.test(query);
-    var isDefinition = /^(what is|define|meaning)\b/.test(query);
-    
-    var aioLikelihood = 0;
-    if (isQuestion) aioLikelihood += 30;
-    if (isList) aioLikelihood += 25;
-    if (isHowTo) aioLikelihood += 25;
-    if (isDefinition) aioLikelihood += 20;
-    if (row.position <= 10) aioLikelihood += 15;
-    if (row.impressions > 500) aioLikelihood += 10;
-    if (row.ctr < 0.03) aioLikelihood += 10;
-    
-    if (aioLikelihood > 30) {
-      aioCandidates.push({
-        query: row.keys[0],
-        position: row.position,
-        impressions: row.impressions,
-        ctr: row.ctr,
-        aioLikelihood: Math.min(100, aioLikelihood),
-        type: isQuestion ? 'Question' : isList ? 'List' : isHowTo ? 'How-To' : isDefinition ? 'Definition' : 'Informational'
-      });
+  console.log('[AEO] Starting analyzeAIOverviews');
+  try {
+    var gscData = fetchGSCQueriesCached();
+    if (!gscData || !gscData.rows) {
+      throw new Error('No GSC data available');
     }
-  });
-  
-  aioCandidates.sort(function(a, b) { return b.aioLikelihood - a.aioLikelihood; });
-  
-  return {
-    candidates: aioCandidates.slice(0, 30),
-    totalCandidates: aioCandidates.length,
-    highValueCandidates: aioCandidates.filter(function(c) { return c.aioLikelihood > 70; }).length,
-    recommendations: aioCandidates.slice(0, 5).map(function(c) {
-      return 'Optimize "' + c.query + '" for AI Overviews (score: ' + c.aioLikelihood + '%)';
-    })
-  };
+    var rows = gscData.rows;
+    var aioCandidates = [];
+    rows.forEach(function(row) {
+      var query = row.keys[0].toLowerCase();
+      var isQuestion = /^(what|how|why|who|when|which|where|can|does|is|are)\b/.test(query) || query.indexOf('?') !== -1;
+      var isList = /\b(best|top|vs|compare|list)\b/.test(query);
+      var isHowTo = /^how to/.test(query);
+      var isDefinition = /^(what is|define|meaning)\b/.test(query);
+      var aioLikelihood = 0;
+      if (isQuestion) aioLikelihood += 30;
+      if (isList) aioLikelihood += 25;
+      if (isHowTo) aioLikelihood += 25;
+      if (isDefinition) aioLikelihood += 20;
+      if (row.position <= 10) aioLikelihood += 15;
+      if (row.impressions > 500) aioLikelihood += 10;
+      if (row.ctr < 0.03) aioLikelihood += 10;
+      if (aioLikelihood > 30) {
+        aioCandidates.push({
+          query: row.keys[0],
+          position: row.position,
+          impressions: row.impressions,
+          ctr: row.ctr,
+          aioLikelihood: Math.min(100, aioLikelihood),
+          type: isQuestion ? 'Question' : isList ? 'List' : isHowTo ? 'How-To' : isDefinition ? 'Definition' : 'Informational'
+        });
+      }
+    });
+    aioCandidates.sort(function(a, b) { return b.aioLikelihood - a.aioLikelihood; });
+    console.log('[AEO] analyzeAIOverviews complete, found ' + aioCandidates.length + ' candidates');
+    return {
+      candidates: aioCandidates.slice(0, 30),
+      totalCandidates: aioCandidates.length,
+      highValueCandidates: aioCandidates.filter(function(c) { return c.aioLikelihood > 70; }).length,
+      recommendations: aioCandidates.slice(0, 5).map(function(c) {
+        return 'Optimize "' + c.query + '" for AI Overviews (score: ' + c.aioLikelihood + '%)';
+      })
+    };
+  } catch(e) {
+    console.error('[AEO] analyzeAIOverviews error:', e);
+    return { error: true, message: e.message };
+  }
 }
 
 // 2. Featured Snippet Tracker
 function trackFeaturedSnippets() {
-  var gscData = fetchGSCQueriesCached();
-  if (!gscData || !gscData.rows) {
-    return { error: 'No GSC data available' };
-  }
-  
-  var snippetCandidates = [];
-  var rows = gscData.rows;
-  
-  rows.forEach(function(row) {
-    var query = row.keys[0].toLowerCase();
-    var isQuestion = /^(what|how|why|who|when|which|where|can|does|is|are)\b/.test(query);
-    var position = row.position || 0;
-    var ctr = row.ctr || 0;
-    var impressions = row.impressions || 0;
-    
-    var snippetLikelihood = 0;
-    if (position >= 1 && position <= 3) snippetLikelihood += 40;
-    if (isQuestion) snippetLikelihood += 30;
-    if (ctr > 0.05) snippetLikelihood += 15;
-    if (impressions > 200) snippetLikelihood += 15;
-    
-    if (snippetLikelihood > 30) {
-      snippetCandidates.push({
-        query: row.keys[0],
-        position: position,
-        ctr: ctr,
-        impressions: impressions,
-        snippetLikelihood: Math.min(100, snippetLikelihood),
-        type: isQuestion ? 'Question' : 'Informational'
-      });
+  console.log('[AEO] Starting trackFeaturedSnippets');
+  try {
+    var gscData = fetchGSCQueriesCached();
+    if (!gscData || !gscData.rows) {
+      throw new Error('No GSC data available');
     }
-  });
-  
-  snippetCandidates.sort(function(a, b) { return b.snippetLikelihood - a.snippetLikelihood; });
-  
-  return {
-    candidates: snippetCandidates.slice(0, 20),
-    totalCandidates: snippetCandidates.length
-  };
+    var snippetCandidates = [];
+    var rows = gscData.rows;
+    rows.forEach(function(row) {
+      var query = row.keys[0].toLowerCase();
+      var isQuestion = /^(what|how|why|who|when|which|where|can|does|is|are)\b/.test(query);
+      var position = row.position || 0;
+      var ctr = row.ctr || 0;
+      var impressions = row.impressions || 0;
+      var snippetLikelihood = 0;
+      if (position >= 1 && position <= 3) snippetLikelihood += 40;
+      if (isQuestion) snippetLikelihood += 30;
+      if (ctr > 0.05) snippetLikelihood += 15;
+      if (impressions > 200) snippetLikelihood += 15;
+      if (snippetLikelihood > 30) {
+        snippetCandidates.push({
+          query: row.keys[0],
+          position: position,
+          ctr: ctr,
+          impressions: impressions,
+          snippetLikelihood: Math.min(100, snippetLikelihood),
+          type: isQuestion ? 'Question' : 'Informational'
+        });
+      }
+    });
+    snippetCandidates.sort(function(a, b) { return b.snippetLikelihood - a.snippetLikelihood; });
+    console.log('[AEO] trackFeaturedSnippets complete, found ' + snippetCandidates.length + ' candidates');
+    return {
+      candidates: snippetCandidates.slice(0, 20),
+      totalCandidates: snippetCandidates.length
+    };
+  } catch(e) {
+    console.error('[AEO] trackFeaturedSnippets error:', e);
+    return { error: true, message: e.message };
+  }
 }
 
 // 3. Zero-Click Analysis (Enhanced)
 function analyzeZeroClickEnhanced() {
-  var gscData = fetchGSCQueriesCached();
-  if (!gscData || !gscData.rows) {
-    return { error: 'No GSC data available' };
-  }
-  
-  var rows = gscData.rows;
-  var zeroClickQueries = [];
-  var totalZeroClickRisk = 0;
-  
-  rows.forEach(function(row) {
-    var query = row.keys[0];
-    var position = row.position || 0;
-    var ctr = row.ctr || 0;
-    var impressions = row.impressions || 0;
-    var clicks = row.clicks || 0;
-    
-    var riskScore = 0;
-    if (position <= 3 && ctr < 0.02) riskScore += 50;
-    if (position <= 5 && ctr < 0.015) riskScore += 30;
-    if (impressions > 100) riskScore += 10;
-    if (position >= 6 && position <= 10 && ctr < 0.01) riskScore += 10;
-    
-    if (riskScore > 20) {
-      zeroClickQueries.push({
-        query: query,
-        position: position,
-        ctr: ctr,
-        impressions: impressions,
-        clicks: clicks,
-        riskScore: Math.min(100, riskScore),
-        riskLevel: riskScore > 70 ? 'High' : riskScore > 40 ? 'Medium' : 'Low',
-        estimatedLostClicks: Math.round(impressions * 0.05 - clicks)
-      });
-      totalZeroClickRisk += riskScore;
+  console.log('[AEO] Starting analyzeZeroClickEnhanced');
+  try {
+    var gscData = fetchGSCQueriesCached();
+    if (!gscData || !gscData.rows) {
+      throw new Error('No GSC data available');
     }
-  });
-  
-  zeroClickQueries.sort(function(a, b) { return b.riskScore - a.riskScore; });
-  
-  return {
-    queries: zeroClickQueries.slice(0, 30),
-    totalAtRisk: zeroClickQueries.length,
-    averageRisk: rows.length > 0 ? Math.round(totalZeroClickRisk / rows.length) : 0,
-    recommendations: [
-      'Add structured data (FAQPage, HowTo) to improve visibility in zero-click results',
-      'Optimize meta descriptions with clear CTAs to encourage clicks',
-      'Target comparison queries which have higher click-through rates'
-    ]
-  };
+    var rows = gscData.rows;
+    var zeroClickQueries = [];
+    var totalZeroClickRisk = 0;
+    rows.forEach(function(row) {
+      var query = row.keys[0];
+      var position = row.position || 0;
+      var ctr = row.ctr || 0;
+      var impressions = row.impressions || 0;
+      var clicks = row.clicks || 0;
+      var riskScore = 0;
+      if (position <= 3 && ctr < 0.02) riskScore += 50;
+      if (position <= 5 && ctr < 0.015) riskScore += 30;
+      if (impressions > 100) riskScore += 10;
+      if (position >= 6 && position <= 10 && ctr < 0.01) riskScore += 10;
+      if (riskScore > 20) {
+        zeroClickQueries.push({
+          query: query,
+          position: position,
+          ctr: ctr,
+          impressions: impressions,
+          clicks: clicks,
+          riskScore: Math.min(100, riskScore),
+          riskLevel: riskScore > 70 ? 'High' : riskScore > 40 ? 'Medium' : 'Low',
+          estimatedLostClicks: Math.round(impressions * 0.05 - clicks)
+        });
+        totalZeroClickRisk += riskScore;
+      }
+    });
+    zeroClickQueries.sort(function(a, b) { return b.riskScore - a.riskScore; });
+    console.log('[AEO] analyzeZeroClickEnhanced complete, found ' + zeroClickQueries.length + ' at-risk queries');
+    return {
+      queries: zeroClickQueries.slice(0, 30),
+      totalAtRisk: zeroClickQueries.length,
+      averageRisk: rows.length > 0 ? Math.round(totalZeroClickRisk / rows.length) : 0,
+      recommendations: [
+        'Add structured data (FAQPage, HowTo) to improve visibility in zero-click results',
+        'Optimize meta descriptions with clear CTAs to encourage clicks',
+        'Target comparison queries which have higher click-through rates'
+      ]
+    };
+  } catch(e) {
+    console.error('[AEO] analyzeZeroClickEnhanced error:', e);
+    return { error: true, message: e.message };
+  }
 }
 
 // 4. Brand Mention Monitor
 function monitorBrandMentions() {
-  var site = getProp('GSC_SITE');
-  var brand = site ? site.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split('.')[0] : 'brand';
-  
-  var gscData = fetchGSCQueriesCached();
-  if (!gscData || !gscData.rows) {
-    return { error: 'No GSC data available' };
-  }
-  
-  var brandMentions = [];
-  var rows = gscData.rows;
-  
-  rows.forEach(function(row) {
-    var query = row.keys[0].toLowerCase();
-    if (query.indexOf(brand.toLowerCase()) !== -1) {
-      brandMentions.push({
-        query: row.keys[0],
-        clicks: row.clicks || 0,
-        impressions: row.impressions || 0,
-        position: row.position || 0,
-        ctr: row.ctr || 0
-      });
+  console.log('[AEO] Starting monitorBrandMentions');
+  try {
+    var site = getProp('GSC_SITE');
+    var brand = site ? site.replace(/^https?:\/\//, '').replace(/\/.*$/, '').split('.')[0] : 'brand';
+    var gscData = fetchGSCQueriesCached();
+    if (!gscData || !gscData.rows) {
+      throw new Error('No GSC data available');
     }
-  });
-  
-  brandMentions.sort(function(a, b) { return b.impressions - a.impressions; });
-  
-  return {
-    brand: brand,
-    totalMentions: brandMentions.length,
-    totalImpressions: brandMentions.reduce(function(s, r) { return s + r.impressions; }, 0),
-    totalClicks: brandMentions.reduce(function(s, r) { return s + r.clicks; }, 0),
-    queries: brandMentions.slice(0, 20),
-    recommendation: brandMentions.length < 10 ? 
-      'Your brand has low search visibility - consider brand awareness campaigns' :
-      'Your brand has good search visibility - maintain with consistent content'
-  };
+    var brandMentions = [];
+    var rows = gscData.rows;
+    rows.forEach(function(row) {
+      var query = row.keys[0].toLowerCase();
+      if (query.indexOf(brand.toLowerCase()) !== -1) {
+        brandMentions.push({
+          query: row.keys[0],
+          clicks: row.clicks || 0,
+          impressions: row.impressions || 0,
+          position: row.position || 0,
+          ctr: row.ctr || 0
+        });
+      }
+    });
+    brandMentions.sort(function(a, b) { return b.impressions - a.impressions; });
+    console.log('[AEO] monitorBrandMentions complete, found ' + brandMentions.length + ' mentions');
+    return {
+      brand: brand,
+      totalMentions: brandMentions.length,
+      totalImpressions: brandMentions.reduce(function(s, r) { return s + r.impressions; }, 0),
+      totalClicks: brandMentions.reduce(function(s, r) { return s + r.clicks; }, 0),
+      queries: brandMentions.slice(0, 20),
+      recommendation: brandMentions.length < 10 ? 
+        'Your brand has low search visibility - consider brand awareness campaigns' :
+        'Your brand has good search visibility - maintain with consistent content'
+    };
+  } catch(e) {
+    console.error('[AEO] monitorBrandMentions error:', e);
+    return { error: true, message: e.message };
+  }
 }
 
 // 5. Competitor AI Citation Analysis
 function analyzeCompetitorAICitations(competitors) {
-  if (!competitors || competitors.length === 0) {
-    var stored = getCompetitors();
-    competitors = stored.length > 0 ? stored : ['competitor1.com', 'competitor2.com'];
-  }
-  
-  var results = [];
-  competitors.forEach(function(comp) {
-    var data = fetchCompetitorAIData(comp);
-    results.push({
-      competitor: comp,
-      citations: data.citations || 0,
-      avgPosition: data.avgPosition || 0,
-      shareOfVoice: data.shareOfVoice || 0,
-      trend: data.trend || 'stable'
+  console.log('[AEO] Starting analyzeCompetitorAICitations');
+  try {
+    if (!competitors || competitors.length === 0) {
+      var stored = getCompetitors();
+      competitors = stored.length > 0 ? stored : ['competitor1.com', 'competitor2.com'];
+    }
+    var results = [];
+    competitors.forEach(function(comp) {
+      var data = fetchCompetitorAIData(comp);
+      results.push({
+        competitor: comp,
+        citations: data.citations || 0,
+        avgPosition: data.avgPosition || 0,
+        shareOfVoice: data.shareOfVoice || 0,
+        trend: data.trend || 'stable'
+      });
     });
-  });
-  
-  results.sort(function(a, b) { return b.shareOfVoice - a.shareOfVoice; });
-  
-  return {
-    competitors: results,
-    topCompetitor: results.length > 0 ? results[0] : null,
-    recommendation: results.length > 0 && results[0].shareOfVoice > 50 ?
-      'Competitors have significant AI visibility - focus on AEO optimization' :
-      'Competitors have moderate AI visibility - maintain current strategy'
-  };
+    results.sort(function(a, b) { return b.shareOfVoice - a.shareOfVoice; });
+    console.log('[AEO] analyzeCompetitorAICitations complete');
+    return {
+      competitors: results,
+      topCompetitor: results.length > 0 ? results[0] : null,
+      recommendation: results.length > 0 && results[0].shareOfVoice > 50 ?
+        'Competitors have significant AI visibility - focus on AEO optimization' :
+        'Competitors have moderate AI visibility - maintain current strategy'
+    };
+  } catch(e) {
+    console.error('[AEO] analyzeCompetitorAICitations error:', e);
+    return { error: true, message: e.message };
+  }
 }
 
 function fetchCompetitorAIData(competitor) {
@@ -3036,16 +3050,15 @@ function fetchCompetitorAIData(competitor) {
 
 // 6. AI Crawler Simulation
 function simulateAICrawler(url) {
-  if (!url) {
-    var site = getProp('GSC_SITE');
-    url = site || 'https://example.com';
-  }
-  
+  console.log('[AEO] Starting simulateAICrawler');
   try {
+    if (!url) {
+      var site = getProp('GSC_SITE');
+      url = site || 'https://example.com';
+    }
     var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true, timeout: 10000 });
     var content = response.getContentText();
     var textContent = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    
     var prompt = 'Analyze this webpage as if you were an AI crawler (like GPTBot or ClaudeBot).\n\n' +
       'URL: ' + url + '\n\n' +
       'Content preview: ' + textContent.slice(0, 3000) + '\n\n' +
@@ -3057,10 +3070,9 @@ function simulateAICrawler(url) {
       '5. "issues": [array of issues found]\n' +
       '6. "recommendations": [array of recommendations]\n' +
       '7. "summary": "2-3 sentence summary"';
-    
     var result = callGemini(prompt, 'You are an AI crawler simulator. Return only valid JSON.');
     var parsed = JSON.parse(result.replace(/```json|```/g, '').trim());
-    
+    console.log('[AEO] simulateAICrawler complete');
     return {
       url: url,
       simulation: parsed,
@@ -3072,7 +3084,8 @@ function simulateAICrawler(url) {
       )
     };
   } catch(e) {
-    return { error: 'Failed to simulate AI crawler: ' + e.message };
+    console.error('[AEO] simulateAICrawler error:', e);
+    return { error: true, message: e.message };
   }
 }
 
@@ -3875,4 +3888,3 @@ function executeActionDirect(action, data, isPost) {
   }
   return resultOutput;
 }
-
